@@ -23,6 +23,9 @@ app.use(cors())
 // this adds middel ware to the all routes 
 app.use(express.json())
 app.use('/user',userRoute)
+app.get("/",(req,res)=>{
+    res.send("Nothing is here.")
+})
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
