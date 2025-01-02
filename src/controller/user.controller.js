@@ -29,6 +29,7 @@ exports.login=async (req, res) => {
             data:userData
         });
     } catch (err) {
+        console.log("this is the errro==>",err)
         res.status(500).send("Error storing OTP");
     }
 };
@@ -51,6 +52,7 @@ exports.verifyOtp=async (req, res) => {
             });
         }
     } catch (err) {
+        console.log("this is the errro==>",err)
         res.status(500).send("Error verifying OTP");
     }
 }

@@ -17,6 +17,7 @@ mongoose.connect(process.env.MONGO_URL, {
 }).catch((err) => {
     console.log(err);
 });
+// for loging the rq,rs
 app.use(morgan("combined"))
 // this is for the access for the client to use the response else browser will block the response
 app.use(cors())
