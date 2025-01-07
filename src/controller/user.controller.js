@@ -1,7 +1,8 @@
-const User=require("../model/user.model");
+const User = require("../model/user.model");
 const jwt = require("jsonwebtoken");
 const cloudinary = require('cloudinary').v2;
 const Banner = require('../model/banner.model');
+const Product = require('../model/product.model');
 
 require("dotenv").config();
 
@@ -15,7 +16,7 @@ function generateOTP() {
 
 
 
-exports.login=async (req, res) => {
+exports.login = async (req, res) => {
     const email = req.body.email;
     const otp = generateOTP();
 
@@ -28,19 +29,19 @@ exports.login=async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        const userData=await user.save();
+        const userData = await user.save();
 
         // Send OTP to the user
         res.json({
             message: "OTP sent successfully",
             data: {
-            id: userData._id,
-            email: userData.email,
-            name: userData.name
+                id: userData._id,
+                email: userData.email,
+                name: userData.name
             }
         });
     } catch (err) {
-        console.log("this is the errro==>",err)
+        console.log("this is the errro==>", err)
         res.status(500).send("Error storing OTP");
     }
 };
@@ -54,18 +55,18 @@ exports.register = async (req, res) => {
 
         if (user) {
             if (user.isVerified) {
-            return res.status(400).json({ message: "User already registered" });
+                return res.status(400).json({ message: "User already registered" });
             } else {
-            user.otp = otp;
-            await user.save();
-            return res.status(200).json({
-                message: "OTP updated successfully",
-                data: {
-                id: user._id,
-                email: user.email,
-                name: user.name
-                }
-            });
+                user.otp = otp;
+                await user.save();
+                return res.status(200).json({
+                    message: "OTP updated successfully",
+                    data: {
+                        id: user._id,
+                        email: user.email,
+                        name: user.name
+                    }
+                });
             }
         }
 
@@ -81,9 +82,9 @@ exports.register = async (req, res) => {
         res.status(201).json({
             message: "User registered successfully",
             data: {
-            id: userData._id,
-            email: userData.email,
-            name: userData.name
+                id: userData._id,
+                email: userData.email,
+                name: userData.name
             }
         });
     } catch (err) {
@@ -93,26 +94,26 @@ exports.register = async (req, res) => {
 };
 
 //verify otp on the basis of email
-exports.verifyOtp=async (req, res) => {
+exports.verifyOtp = async (req, res) => {
     const email = req.body.email;
     const otp = req.body.otp;
-    console.log("this is the otp==>",otp)
-    
+    console.log("this is the otp==>", otp)
+
     try {
         const user = await User.findOne({ email: email });
-        console.log("this is the user.otp==>",user.otp)
+        console.log("this is the user.otp==>", user.otp)
         if (!user) {
-            return res.status(404).json({"message":"User not found"});
-        }else if (user.otp !== otp) {
-            return res.status(403).json({"message":"Invalid OTP"});
-        }else{
-            
+            return res.status(404).json({ "message": "User not found" });
+        } else if (user.otp !== otp) {
+            return res.status(403).json({ "message": "Invalid OTP" });
+        } else {
+
             user.isVerified = true;
-             // Clear the OTP after verification
+            // Clear the OTP after verification
             await user.save();
-            console.log("this is the user==>",user)
+            console.log("this is the user==>", user)
             const token = generateJwtToken(user);
-            console.log("this is the token==>",token)
+            console.log("this is the token==>", token)
             return res.status(200).json({
                 message: "OTP verified successfully",
                 token: token,
@@ -124,7 +125,7 @@ exports.verifyOtp=async (req, res) => {
             });
         }
     } catch (err) {
-        console.log("this is the errro==>",err)
+        console.log("this is the errro==>", err)
         res.status(500).send("Error verifying OTP");
     }
 }
@@ -214,6 +215,54 @@ exports.getBanner = async (req, res) => {
         res.status(500).json({ message: 'An error occurred' });
     }
 }
+
+//add product 
+exports.addProduct = async (req, res) => {
+    try {
+        const {
+            name,
+            price,
+            pattern,
+            fabric,
+            colors,
+            sizes,
+            description,
+            categories,
+            fit,
+            
+            subcategory,
+        } = req.body;
+        console.log("this is the req.body==>",req.body)
+
+        // Validate request body
+        if (!(name || price || pattern || fabric || colors || sizes || description || categories || fit || subcategory)) {
+            return res.status(400).json({ error: 'All required fields must be provided' });
+        }
+
+        // Create and save product
+        const product = new Product({
+            name,
+            price,
+            pattern,
+            fabric,
+            colors,
+            sizes,
+            description,
+            categories,
+            fit,
+            image: req.imageUrl,
+            subcategory,
+        });
+
+        const savedProduct = await product.save();
+
+        res.status(201).json({ message: 'Product added successfully', product: savedProduct });
+    } catch (error) {
+        console.error('Error adding product:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
 
 
 
