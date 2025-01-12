@@ -217,54 +217,119 @@ exports.getBanner = async (req, res) => {
 }
 
 //add product 
+// exports.addProduct = async (req, res) => {
+//     try {
+//         const {
+//             name,
+//             price,
+//             pattern,
+//             fabric,
+//             colors,
+//             sizes,
+//             description,
+//             categories,
+//             fit,
+
+//             subcategory,
+//         } = req.body;
+//         console.log("this is the req.body==>", req.body)
+
+//         // Validate request body
+//         if (!(name || price || pattern || fabric || colors || sizes || description || categories || fit || subcategory)) {
+//             return res.status(400).json({ error: 'All required fields must be provided' });
+//         }
+
+//         // Create and save product
+//         const product = new Product({
+//             name,
+//             price,
+//             pattern,
+//             fabric,
+//             colors,
+//             sizes,
+//             description,
+//             categories,
+//             fit,
+//             image: req.imageUrl,
+//             subcategory,
+//         });
+
+//         const savedProduct = await product.save();
+
+//         res.status(201).json({ message: 'Product added successfully', product: savedProduct });
+//     } catch (error) {
+//         console.error('Error adding product:', error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// }
 exports.addProduct = async (req, res) => {
     try {
-        const {
-            name,
-            price,
-            pattern,
-            fabric,
-            colors,
-            sizes,
-            description,
-            categories,
-            fit,
-            
-            subcategory,
-        } = req.body;
-        console.log("this is the req.body==>",req.body)
-
-        // Validate request body
-        if (!(name || price || pattern || fabric || colors || sizes || description || categories || fit || subcategory)) {
-            return res.status(400).json({ error: 'All required fields must be provided' });
-        }
-
-        // Create and save product
-        const product = new Product({
-            name,
-            price,
-            pattern,
-            fabric,
-            colors,
-            sizes,
-            description,
-            categories,
-            fit,
-            image: req.imageUrl,
-            subcategory,
-        });
-
-        const savedProduct = await product.save();
-
-        res.status(201).json({ message: 'Product added successfully', product: savedProduct });
+      const {
+        name,
+        price,
+        pattern,
+        fabric,
+        colors,
+        sizes,
+        description,
+        categories,
+        fit,
+        subcategory,
+      } = req.body;
+  
+      console.log(req.body)
+  
+      // Convert JSON string of sizes to array
+      const parsedSizes = JSON.parse(sizes);
+  
+      // Validate sizes
+      if (!Array.isArray(parsedSizes) || parsedSizes.length === 0) {
+        return res.status(400).json({ message: 'Sizes should be a non-empty array.' });
+      }
+      console.log("befor new Product")
+      // Create and save product
+      const product = new Product({
+        name,
+        price,
+        pattern,
+        fabric,
+        colors: colors.split(',').map(color => color.trim()), // Convert comma-separated colors to array
+        sizes: parsedSizes,
+        description,
+        categories,
+        fit,
+        subcategory,
+        image:req.imageUrl,
+      });
+  console.log("after new Product")
+      const savedProduct = await product.save();
+      console.log("after save Product")
+      // Include image URL in the response
+      res.status(201).json({
+        message: 'Product added successfully!',
+        product: savedProduct,
+        imageUrl: req.imageUrl, // Include image in the response
+      });
     } catch (error) {
-        console.error('Error adding product:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      console.error('Error adding product:', error.message);
+      res.status(500).json({
+        message: 'An error occurred while adding the product.',
+        error: error.message,
+      });
     }
-}
+  };
 
 
 
-
+//   name:Stylish Kurti
+//   price:599
+//   pattern:Printed
+//   fabric:Cotton
+//   colors:Red,Blue,Green
+//   sizes:[{"size":"M","quantity":10},{"size":"L","quantity":5}]
+//   description:Beautiful printed kurti for casual wear.
+//   categories:Casual Wear
+//   fit:Regular Fit
+//   subcategory:Kurti
 
 
