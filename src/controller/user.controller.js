@@ -217,51 +217,7 @@ exports.getBanner = async (req, res) => {
 }
 
 //add product 
-// exports.addProduct = async (req, res) => {
-//     try {
-//         const {
-//             name,
-//             price,
-//             pattern,
-//             fabric,
-//             colors,
-//             sizes,
-//             description,
-//             categories,
-//             fit,
 
-//             subcategory,
-//         } = req.body;
-//         console.log("this is the req.body==>", req.body)
-
-//         // Validate request body
-//         if (!(name || price || pattern || fabric || colors || sizes || description || categories || fit || subcategory)) {
-//             return res.status(400).json({ error: 'All required fields must be provided' });
-//         }
-
-//         // Create and save product
-//         const product = new Product({
-//             name,
-//             price,
-//             pattern,
-//             fabric,
-//             colors,
-//             sizes,
-//             description,
-//             categories,
-//             fit,
-//             image: req.imageUrl,
-//             subcategory,
-//         });
-
-//         const savedProduct = await product.save();
-
-//         res.status(201).json({ message: 'Product added successfully', product: savedProduct });
-//     } catch (error) {
-//         console.error('Error adding product:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// }
 exports.addProduct = async (req, res) => {
     try {
       const {
@@ -319,17 +275,42 @@ exports.addProduct = async (req, res) => {
     }
   };
 
+// List all products
+exports.allProducts = async (req, res) => {
+    try {
+        const products = await Product.find();
+        res.status(200).json(products);
+    } catch (error) {
+        console.error('Error listing products:', error.message);
+        res.status(500).json({
+            message: 'An error occurred while listing the products.',
+            error: error.message,
+        });
+    }
+};
 
+//product fetch product detail 
+exports.getProductDetail = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        const product = await Product.findById(productId);
 
-//   name:Stylish Kurti
-//   price:599
-//   pattern:Printed
-//   fabric:Cotton
-//   colors:Red,Blue,Green
-//   sizes:[{"size":"M","quantity":10},{"size":"L","quantity":5}]
-//   description:Beautiful printed kurti for casual wear.
-//   categories:Casual Wear
-//   fit:Regular Fit
-//   subcategory:Kurti
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        const data ={
+            message:"success",
+            status:200,
+            data:product
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching product details:', error.message);
+        res.status(500).json({
+            message: 'An error occurred while fetching the product details.',
+            error: error.message,
+        });
+    }
+};
 
 

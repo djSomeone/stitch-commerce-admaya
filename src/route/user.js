@@ -34,4 +34,10 @@ router.get("/banner", userController.getBanner);
 
 // add product
 router.post("/addProduct", upload.single('image'),uploadImageToCloudinary, userController.addProduct);
+
+//list product
+router.get("/allProduct",userController.allProducts);
+
+//product detail
+router.get("/getProductDetail/:id",userController.getProductDetail);
 module.exports= router;
