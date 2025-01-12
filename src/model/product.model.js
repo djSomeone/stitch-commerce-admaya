@@ -68,8 +68,8 @@ const productSchema = new mongoose.Schema(
       enum: ['Regular Fit', 'Slim Fit', 'Loose Fit'], 
       required: true 
     },
-    image: { 
-      type: String, 
+    images: { 
+      type: [String], 
         },
     
     subcategory: { 

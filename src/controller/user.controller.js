@@ -217,7 +217,6 @@ exports.getBanner = async (req, res) => {
 }
 
 //add product 
-
 exports.addProduct = async (req, res) => {
     try {
       const {
@@ -255,7 +254,7 @@ exports.addProduct = async (req, res) => {
         categories,
         fit,
         subcategory,
-        image:req.imageUrl,
+        images:req.imageUrls,
       });
   console.log("after new Product")
       const savedProduct = await product.save();
@@ -279,7 +278,15 @@ exports.addProduct = async (req, res) => {
 exports.allProducts = async (req, res) => {
     try {
         const products = await Product.find();
-        res.status(200).json(products);
+        const response={
+            message:"success",
+            status:200,
+            data:{
+                count:products.length,
+                products:products
+            }
+        }
+        res.status(200).json(response);
     } catch (error) {
         console.error('Error listing products:', error.message);
         res.status(500).json({
@@ -312,5 +319,6 @@ exports.getProductDetail = async (req, res) => {
         });
     }
 };
+
 
 

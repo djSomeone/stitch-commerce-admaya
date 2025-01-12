@@ -2,7 +2,7 @@ const app = require("express");
 const User = require('../model/user.model'); // Assuming you have a User model
 const router=app.Router()
 const userController=require("../controller/user.controller")
-const uploadImageToCloudinary = require('../middleware/uploadImage');
+const uploadImagesToCloudinary = require('../middleware/uploadImage');
 const multer = require('multer');
 // console.log("before cloudinary")
 const cloudinary = require('cloudinary').v2;
@@ -33,11 +33,15 @@ router.post("/upload", upload.single('image'), userController.uploadBanner);
 router.get("/banner", userController.getBanner);
 
 // add product
-router.post("/addProduct", upload.single('image'),uploadImageToCloudinary, userController.addProduct);
+router.post("/addProduct", upload.array('images', 2),uploadImagesToCloudinary, userController.addProduct);
 
 //list product
 router.get("/allProduct",userController.allProducts);
 
 //product detail
 router.get("/getProductDetail/:id",userController.getProductDetail);
+
+// add to cart
+
+
 module.exports= router;
