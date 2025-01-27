@@ -1,17 +1,10 @@
 const app = require("express");
-const User = require('../model/user.model'); // Assuming you have a User model
 const router=app.Router()
 const userController=require("../controller/user.controller")
-const uploadImagesToCloudinary = require('../middleware/uploadImage');
+const authenticateToken = require('../middleware/verifyToken');
 const multer = require('multer');
 // console.log("before cloudinary")
-const cloudinary = require('cloudinary').v2;
-// console.log("after cloudinary")
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+
 
 // // Multer middleware to handle file upload
 const storage = multer.memoryStorage(); // Store file in memory for direct Cloudinary upload
@@ -32,16 +25,28 @@ router.post("/upload", upload.single('image'), userController.uploadBanner);
 //get user banner
 router.get("/banner", userController.getBanner);
 
-// add product
-router.post("/addProduct", upload.array('images', 2),uploadImagesToCloudinary, userController.addProduct);
+//place order
+router.post("/placeOrder",authenticateToken, userController.placeOrder);
 
-//list product
-router.get("/allProduct",userController.allProducts);
+//get user order
+router.get("/user-orders/:userId",authenticateToken, userController.getUserOrders);
 
-//product detail
-router.get("/getProductDetail/:id",userController.getProductDetail);
+//add to cart
+router.post("/addToCart",authenticateToken, userController.addCartProduct);
 
-// add to cart
+//get cart product
+router.get("/getCartProduct/:userId",authenticateToken, userController.getUserCartProduct);
+
+//delete cart product
+router.delete("/deleteCartProduct",authenticateToken, userController.deleteCartProduct);
+
+//add wishlist(remaining to test)
+router.post("/addToWishlist",authenticateToken, userController.addWishlist);
+
+//get user wishlist
+router.post("/wishlist/:userId",authenticateToken, userController.userWishlist);
+
+
 
 
 module.exports= router;

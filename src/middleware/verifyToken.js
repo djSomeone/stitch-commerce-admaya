@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-function authenticateToken(req, res, next) {
+const authenticateToken=(req, res, next)=>{
     const authHeader = req.headers['authorization'];
     
     if (!authHeader) return res.status(401).send('Authorization header missing');

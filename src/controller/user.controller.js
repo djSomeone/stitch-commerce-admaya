@@ -3,6 +3,9 @@ const jwt = require("jsonwebtoken");
 const cloudinary = require('cloudinary').v2;
 const Banner = require('../model/banner.model');
 const Product = require('../model/product.model');
+const Order = require('../model/order.model');
+const UserCart = require('../model/userCart.model');
+const UserWishlist = require('../model/wishlist.model');
 
 require("dotenv").config();
 
@@ -216,109 +219,271 @@ exports.getBanner = async (req, res) => {
     }
 }
 
-//add product 
-exports.addProduct = async (req, res) => {
+
+// order
+exports.placeOrder=async (req, res) => {
     try {
-      const {
-        name,
-        price,
-        pattern,
-        fabric,
-        colors,
-        sizes,
-        description,
-        categories,
-        fit,
-        subcategory,
-      } = req.body;
+      const { userId, productDetails, totalPrice, paymentMethod, couponId } = req.body;
   
-      console.log(req.body)
-  
-      // Convert JSON string of sizes to array
-      const parsedSizes = JSON.parse(sizes);
-  
-      // Validate sizes
-      if (!Array.isArray(parsedSizes) || parsedSizes.length === 0) {
-        return res.status(400).json({ message: 'Sizes should be a non-empty array.' });
+      // Validate input fields
+      if (!userId || !productDetails || !totalPrice || !paymentMethod) {
+        return res.status(400).json({ error: "Missing required fields" });
       }
-      console.log("befor new Product")
-      // Create and save product
-      const product = new Product({
-        name,
-        price,
-        pattern,
-        fabric,
-        colors: colors.split(',').map(color => color.trim()), // Convert comma-separated colors to array
-        sizes: parsedSizes,
-        description,
-        categories,
-        fit,
-        subcategory,
-        images:req.imageUrls,
+  
+      // Calculate dates
+      const orderedDate = new Date();
+      const estimatedDate = new Date(orderedDate);
+      estimatedDate.setDate(estimatedDate.getDate() + 3); // Add 3 days for estimated delivery
+      const deliveryDate = new Date(estimatedDate);
+      deliveryDate.setDate(deliveryDate.getDate() + 1); // Add 1 day for actual delivery
+  
+      // Create new order
+      const newOrder = new Order({
+        userId,
+        productDetails, // Ensure productDetails follows the required schema
+        totalPrice,
+        paymentMethod,
+        orderedDate,
+        estimatedDate,
+        deliveryDate,
+        couponId, // Optional
       });
-  console.log("after new Product")
-      const savedProduct = await product.save();
-      console.log("after save Product")
-      // Include image URL in the response
+  
+      // Save the order to the database
+      const savedOrder = await newOrder.save();
+  
       res.status(201).json({
-        message: 'Product added successfully!',
-        product: savedProduct,
-        imageUrl: req.imageUrl, // Include image in the response
+        message: "Order placed successfully",
+        order: savedOrder,
       });
     } catch (error) {
-      console.error('Error adding product:', error.message);
-      res.status(500).json({
-        message: 'An error occurred while adding the product.',
-        error: error.message,
+      console.error("Error adding order:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+exports.getUserOrders = async (req, res) => {
+    try {
+      const { userId } = req.params;
+  
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+  
+      // Fetch the latest 10 orders for the user, sorted by orderedDate (descending)
+      const userOrders = await Order.find({ userId })
+        .sort({ orderedDate: -1 }) // Sort by orderedDate in descending order
+        .limit(10); // Limit to the latest 10 orders
+  
+      if (!userOrders.length) {
+        return res.status(404).json({ message: "No orders found for this user" });
+      }
+  
+      res.status(200).json({
+        message: "Orders fetched successfully",
+        orders: userOrders,
+      });
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
+  // cart
+exports.addCartProduct= async (req, res) => {
+    const { userId, productId, quantity, color, size } = req.body;
+  
+    try {
+      // Check if the product exists
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found.' });
+      }
+  
+      // Check if the user has a cart
+      let userCart = await UserCart.findOne({ userId });
+  
+      // If no cart exists, create a new cart
+      if (!userCart) {
+        userCart = new UserCart({
+          userId,
+          cartItems: [{
+            productId,
+            quantity,
+            color,
+            size,
+          }],
+        });
+        await userCart.save();
+        return res.status(201).json({
+          message: 'Cart created and item added successfully.',
+          cart: userCart,
+        });
+      }
+  
+      // If the cart exists, check if the item is already in the cart
+      const existingItem = userCart.cartItems.find(
+        (item) => item.productId.toString() === productId.toString() && item.color === color && item.size === size
+      );
+  
+      if (existingItem) {
+        // Update the quantity of the existing item
+        existingItem.quantity = quantity;
+        await userCart.save();
+        return res.status(200).json({
+          message: 'Item quantity updated successfully.',
+          cart: userCart,
+        });
+      } else {
+        // Add the new item to the cart
+        userCart.cartItems.push({ productId, quantity, color, size });
+        await userCart.save();
+        return res.status(200).json({
+          message: 'Item added to cart successfully.',
+          cart: userCart,
+        });
+      }
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+    }
+  }
+
+exports.getUserCartProduct = async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      // Find the user's cart
+      const userCart = await UserCart.findOne({ userId }).populate({
+        path: 'cartItems.productId', // Populate the product details
+        select: 'name price images' // Select the relevant fields to return
+      });
+  
+      // If no cart is found, return a 404 error
+      if (!userCart) {
+        return res.status(404).json({ message: 'Cart not found for this user.' });
+      }
+  
+      // Send the user's cart items
+      res.status(200).json({
+        message: 'Cart products retrieved successfully.',
+        cart: userCart.cartItems,
+      });
+    } catch (error) {
+      console.error('Error retrieving cart:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+    }
+  }
+
+exports.deleteCartProduct= async (req, res) => {
+  const { userId, cartItemId } = req.body;
+
+  if (!userId || !cartItemId) {
+    return res.status(400).json({
+      success: false,
+      message: 'userId and cartItemId are required in the request body.',
+    });
+  }
+
+  try {
+    // Remove the specific cart item for the user
+    const result = await UserCart.updateOne(
+      { userId },
+      { $pull: { cartItems: { _id: cartItemId } } }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({
+        success: true,
+        message: 'Cart item deleted successfully.',
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Cart item not found or already deleted.',
       });
     }
-  };
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while deleting the cart item.',
+      error: error.message,
+    });
+  }
+}
 
-// List all products
-exports.allProducts = async (req, res) => {
-    try {
-        const products = await Product.find();
-        const response={
-            message:"success",
-            status:200,
-            data:{
-                count:products.length,
-                products:products
-            }
-        }
-        res.status(200).json(response);
-    } catch (error) {
-        console.error('Error listing products:', error.message);
-        res.status(500).json({
-            message: 'An error occurred while listing the products.',
-            error: error.message,
-        });
+
+// wishlist
+
+exports.addWishlist=async (req, res) => {
+    const { userId, productId, quantity, color, size } = req.body;
+  
+    // Validation
+    if (!userId || !productId || !quantity || !color || !size) {
+      return res.status(400).json({ message: 'All fields are required.' });
     }
-};
-
-//product fetch product detail 
-exports.getProductDetail = async (req, res) => {
+  
     try {
-        const productId = req.params.id;
-        const product = await Product.findById(productId);
-
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-        const data ={
-            message:"success",
-            status:200,
-            data:product
-        }
-        res.status(200).json(data);
+      // Find or create a wishlist for the user
+      let userWishlist = await UserWishlist.findOne({ userId });
+  
+      if (!userWishlist) {
+        userWishlist = new UserWishlist({ userId, wishlistItems: [] });
+      }
+  
+      // Check if the product is already in the wishlist
+      const productExists = userWishlist.wishlistItems.some(item => 
+        item.productId.toString() === productId && 
+        item.size === size && 
+        item.color === color
+      );
+  
+      if (productExists) {
+        return res.status(400).json({ message: 'Product already in the wishlist.' });
+      }
+  
+      // Add new item to the wishlist
+      userWishlist.wishlistItems.push({ productId, quantity, color, size });
+  
+      // Save the wishlist
+      await userWishlist.save();
+  
+      res.status(200).json({
+        message: 'Product added to wishlist successfully.',
+        wishlist: userWishlist,
+      });
     } catch (error) {
-        console.error('Error fetching product details:', error.message);
-        res.status(500).json({
-            message: 'An error occurred while fetching the product details.',
-            error: error.message,
-        });
+      console.error('Error adding to wishlist:', error);
+      res.status(500).json({ message: 'Internal server error.' });
     }
-};
+  }
+
+exports.userWishlist= async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+      // Find the user's wishlist
+      const userWishlist = await UserWishlist.findOne({ userId }).populate({
+        path: 'wishlistItems.productId', // Populate the product details
+        select: 'name price images' // Select relevant fields
+      });
+  
+      // If no wishlist is found, return a 404 error
+      if (!userWishlist) {
+        return res.status(404).json({ message: 'Wishlist not found for this user.' });
+      }
+  
+      // Send the user's wishlist items
+      res.status(200).json({
+        message: 'Wishlist products retrieved successfully.',
+        wishlist: userWishlist.wishlistItems,
+      });
+    } catch (error) {
+      console.error('Error retrieving wishlist:', error);
+      res.status(500).json({ message: 'Internal server error.' });
+    }
+  }
 
 
 

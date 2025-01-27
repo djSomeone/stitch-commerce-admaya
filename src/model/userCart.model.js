@@ -11,6 +11,10 @@ const cartItemSchema = new mongoose.Schema({
     required: true,
     min: 1, // Quantity should be at least 1
   },
+  color: {
+    type: String,
+    required: true, // Example: 'Red', 'Blue'
+  },
   size: {
     type: String,
     required: true, // Example: 'L', 'XL'
