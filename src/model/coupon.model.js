@@ -31,26 +31,37 @@ const couponSchema = new mongoose.Schema({
   },
   code: {
     type: String,
-    unique: true, // Ensures uniqueness
+    unique: true, // Enforced uniqueness at the database level
     required: true,
   },
 });
 
-// Pre-save Middleware to Generate Unique Code
-couponSchema.pre("save", async function (next) {
-  if (!this.code) {
-    let uniqueCodeFound = false;
-    while (!uniqueCodeFound) {
-      const randomCode = generateCouponCode(12); // Fixed size of 12 characters
-      const existingCoupon = await mongoose.model("Coupon").findOne({ code: randomCode });
-      if (!existingCoupon) {
-        this.code = randomCode;
-        uniqueCodeFound = true;
-      }
+// Utility Function to Generate and Set a Unique Code
+async function setUniqueCouponCode(doc) {
+  let uniqueCodeFound = false;
+
+  while (!uniqueCodeFound) {
+    const randomCode = generateCouponCode(12); // Fixed size of 12 characters
+    const existingCoupon = await mongoose.model("Coupon").findOne({ code: randomCode });
+    if (!existingCoupon) {
+      doc.code = randomCode;
+      uniqueCodeFound = true;
     }
   }
-  next();
+}
+
+// Pre-save Middleware
+couponSchema.pre("validate", async function (next) {
+  if (!this.code) {
+    try {
+      await setUniqueCouponCode(this); // Generate a unique code before validation
+      next();
+    } catch (error) {
+      next(error); // Pass the error to the next middleware
+    }
+  } else {
+    next(); // Skip if code already exists
+  }
 });
 
-// Export the Model
 module.exports = mongoose.model("Coupon", couponSchema);

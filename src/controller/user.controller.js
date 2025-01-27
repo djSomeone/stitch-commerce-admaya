@@ -6,6 +6,9 @@ const Product = require('../model/product.model');
 const Order = require('../model/order.model');
 const UserCart = require('../model/userCart.model');
 const UserWishlist = require('../model/wishlist.model');
+const UserAddress = require('../model/addresses.model');
+const ContactUs = require('../model/contactUs.model');
+// const moment = require('moment');
 
 require("dotenv").config();
 
@@ -433,14 +436,16 @@ exports.addWishlist=async (req, res) => {
       }
   
       // Check if the product is already in the wishlist
-      const productExists = userWishlist.wishlistItems.some(item => 
+      const productExists = userWishlist.wishlistItems.find(item => 
         item.productId.toString() === productId && 
         item.size === size && 
         item.color === color
       );
   
       if (productExists) {
-        return res.status(400).json({ message: 'Product already in the wishlist.' });
+        productExists.quantity = quantity;
+        await userWishlist.save();
+        return res.status(200).json({ message: 'Product updated in the wishlist.' ,wishlist: userWishlist });
       }
   
       // Add new item to the wishlist
@@ -485,5 +490,365 @@ exports.userWishlist= async (req, res) => {
     }
   }
 
+exports.deleteWishlistItem = async (req, res) => {
+    const { userId, wishlistItemId } = req.body;
+  
+    // Validation for missing fields
+    if (!userId || !wishlistItemId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId and wishlistItemId are required in the request body.',
+      });
+    }
+  
+    try {
+      // Remove the specific wishlist item for the user
+      const result = await UserWishlist.updateOne(
+        { userId },
+        { $pull: { wishlistItems: { _id: wishlistItemId } } }
+      );
+  
+      // If the item was deleted
+      if (result.modifiedCount > 0) {
+        res.status(200).json({
+          success: true,
+          message: 'Wishlist item deleted successfully.',
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Wishlist item not found or already deleted.',
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while deleting the wishlist item.',
+        error: error.message,
+      });
+    }
+  }
+  
 
+// user address
 
+exports.addUserAddress= async (req, res) =>{
+  const { userId, address } = req.body;
+
+  if (!userId || !address) {
+    return res.status(400).json({
+      success: false,
+      message: "userId and address are required.",
+    });
+  }
+
+  try {
+    // Check if the user already has an address record
+    let userAddress = await UserAddress.findOne({ userId });
+
+    if (userAddress) {
+      // Validate the limit of 5 addresses
+      if (userAddress.addresses.length >= 5) {
+        return res.status(400).json({
+          success: false,
+          message: "You can only save up to 5 addresses.",
+        });
+      }
+
+      // If `isDefault` is true, ensure no other address is marked as default
+      if (address.isDefault) {
+        userAddress.addresses.forEach((addr) => (addr.isDefault = false));
+      }
+
+      // Add the new address to the user's address list
+      userAddress.addresses.push(address);
+    } else {
+      // Create a new address record for the user
+      userAddress = new UserAddress({
+        userId,
+        addresses: [address],
+      });
+    }
+
+    const savedAddress = await userAddress.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Address added successfully.",
+      addresses: savedAddress.addresses,
+    });
+  } catch (error) {
+    console.error("Error adding address:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while adding the address.",
+      error: error.message,
+    });
+  }
+};
+
+exports.getUserAddresses=async(req, res)=> {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: "userId is required.",
+    });
+  }
+
+  try {
+    const userAddress = await UserAddress.findOne({ userId });
+
+    if (!userAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "No addresses found for this user.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Addresses retrieved successfully.",
+      addresses: userAddress.addresses,
+    });
+  } catch (error) {
+    console.error("Error retrieving addresses:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while retrieving the addresses.",
+      error: error.message,
+    });
+  }
+};
+
+exports.updateUserAddress = async (req, res) => {
+  const { userId, addressId, updatedDetails } = req.body;
+
+  // Validate the request body
+  if (!userId || !addressId || !updatedDetails) {
+    return res.status(400).json({
+      success: false,
+      message: 'userId, addressId, and updatedDetails are required in the request body.',
+    });
+  }
+
+  try {
+    // Find the user's address book
+    const userAddress = await UserAddress.findOne({ userId });
+
+    if (!userAddress) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
+
+    // Find the index of the address to update in the user's addresses array
+    const addressIndex = userAddress.addresses.findIndex(
+      (address) => address._id.toString() === addressId
+    );
+
+    if (addressIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Address not found.',
+      });
+    }
+
+    // Update the address with the new details
+    userAddress.addresses[addressIndex] = {
+      ...userAddress.addresses[addressIndex].toObject(), // Convert to object to merge
+      ...updatedDetails, // Merge updated details with the existing address
+    };
+
+    // Save the updated address book
+    await userAddress.save();
+
+    // Respond with success and the updated address
+    res.status(200).json({
+      success: true,
+      message: 'Address updated successfully.',
+      updatedAddress: userAddress.addresses[addressIndex],
+    });
+  } catch (error) {
+    console.error('Error updating address:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while updating the address.',
+      error: error.message,
+    });
+  }
+};
+
+// contact us
+
+exports.addContactUs = async (req, res) => {
+  const { firstName, lastName, email, phone, message } = req.body;
+
+  if (!firstName || !lastName || !email || !phone || !message) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required.',
+    });
+  }
+
+  try {
+    const newContactMessage = new ContactUs({
+      firstName,
+      lastName,
+      email,
+      phone,
+      message,
+    });
+
+    await newContactMessage.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Your message has been submitted successfully.',
+    });
+  } catch (error) {
+    console.error('Error submitting contact message:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while submitting your message.',
+      error: error.message,
+    });
+  }
+};
+
+// get all contact us messages
+
+exports.getAllContactUsMessages = async (req, res) => {
+  try {
+    const contactMessages = await ContactUs.find();
+
+    res.status(200).json({
+      success: true,
+      message: 'Contact messages retrieved successfully.',
+      messages: contactMessages,
+    });
+  } catch (error) {
+    console.error('Error retrieving contact messages:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while retrieving contact messages.',
+      error: error.message,
+    });
+  }
+};
+
+//filter product (panding )
+
+exports.filterProduct = async (req, res) => {
+  const { category, subcategory, minPrice, maxPrice, colors, size } = req.query;
+
+  // Build filter object based on the query parameters
+  const filter = {};
+
+  if (category) {
+    filter.categories = category;
+  }
+  
+  if (subcategory) {
+    filter.subcategory = subcategory;
+  }
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) {
+      filter.price.$gte = minPrice; // Greater than or equal to minPrice
+    }
+    if (maxPrice) {
+      filter.price.$lte = maxPrice; // Less than or equal to maxPrice
+    }
+  }
+
+  if (colors) {
+    filter.colors = { $in: colors.split(',') }; // Filter by colors (split if multiple colors)
+  }
+
+  if (size) {
+    filter['sizes.size'] = size; // Filter by size (size is nested in 'sizes' array)
+  }
+
+  try {
+    // Get products from the database based on the filter criteria
+    let products;
+
+    // If there are no filters, return a maximum of 50 products
+    if (Object.keys(filter).length === 0) {
+      products = await Product.find().limit(50); // Limit to 50 products if no filters are applied
+    } else {
+      products = await Product.find(filter); // If filters are applied, apply them
+    }
+
+    if (products.length === 0) {
+      return res.status(404).json({ message: 'No products found matching the criteria.' });
+    }
+
+    // Send filtered products as response
+    res.status(200).json({
+      message: 'Filtered products fetched successfully.',
+      products,
+    });
+  } catch (error) {
+    console.error('Error fetching filtered products:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching filtered products.',
+      error: error.message,
+    });
+  }
+}
+
+exports.addExchangeProduct = async (req, res) => {
+  // const { orderId } = req.params;
+  const { orderId,productId, reasonForExchange, problem, size, color, arrivalDate } = req.body;
+
+  try {
+    // Find the order by orderId
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Find the product in the order's product details
+    const productDetails = order.productDetails.find(
+      (product) => product.productId.toString() === productId.toString()
+    );
+
+    if (!productDetails) {
+      return res.status(400).json({ message: 'Product not found in the order' });
+    }
+
+    // Create the exchange object
+    const newExchange = {
+      productId,
+      reasonForExchange,
+      problem,
+      size: size || productDetails.size, // Optional, if size doesn't change
+      color: color || productDetails.color, // Optional, if color doesn't change
+      arrivalDate,
+      exchangeStatus: 'ordered', // Set default status to 'ordered'
+    };
+
+    // Add the exchange to the order's exchanges array
+    order.exchanges.push(newExchange);
+
+    // Save the updated order
+    await order.save();
+
+    // Return the updated order
+    res.json({
+      message: 'Exchange added successfully',
+      order: order,
+    });
+  } catch (error) {
+    console.error('Error adding exchange:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

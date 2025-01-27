@@ -2,6 +2,7 @@ const express = require('express');
 const userRoute=require("./src/route/user.js")
 const productRoute=require("./src/route/product.js")
 const homeRoute=require("./src/route/home.js")
+const couponRoute=require("./src/route/coupon.js")
 const mongoose = require('mongoose');
 // const helmet = require('helmet');
 require('dotenv').config();
@@ -42,6 +43,7 @@ app.use(express.json())
 app.use('/user',userRoute)
 app.use('/product',productRoute)
 app.use('/home',homeRoute)
+app.use('/coupon',couponRoute)
 
 app.get("/",(req,res)=>{
     res.send("Nothing is here.")

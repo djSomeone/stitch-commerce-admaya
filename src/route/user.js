@@ -44,8 +44,29 @@ router.delete("/deleteCartProduct",authenticateToken, userController.deleteCartP
 router.post("/addToWishlist",authenticateToken, userController.addWishlist);
 
 //get user wishlist
-router.post("/wishlist/:userId",authenticateToken, userController.userWishlist);
+router.get("/wishlist/:userId",authenticateToken, userController.userWishlist);
 
+//delete wishlist
+router.delete("/deleteWishlist",authenticateToken, userController.deleteWishlistItem);
+
+
+// add user address
+router.post("/addAddress",authenticateToken, userController.addUserAddress);
+
+//get user address
+router.get("/getUserAddresses/:userId",authenticateToken, userController.getUserAddresses);
+
+// update user address
+router.post("/updateAddress",authenticateToken, userController.updateUserAddress);
+
+// add contact us
+router.post("/addContactUs", userController.addContactUs);
+
+// get contact us
+router.get("/getContactUs", userController.getAllContactUsMessages);
+
+//add exchange
+router.post("/addExchange",authenticateToken, userController.addExchangeProduct);
 
 
 
