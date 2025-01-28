@@ -7,7 +7,8 @@ exports.latestArrivals = async (req, res) => {
     try {
         const latestProducts = await Product.find()
             .sort({ createdAt: -1 })
-            .limit(5);
+            .limit(5)
+            .select('_id name price images');
         const response = {
             message: "success",
             status: 200,
