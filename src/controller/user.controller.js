@@ -8,9 +8,32 @@ const UserCart = require('../model/userCart.model');
 const UserWishlist = require('../model/wishlist.model');
 const UserAddress = require('../model/addresses.model');
 const ContactUs = require('../model/contactUs.model');
+const nodemailer = require('nodemailer');
 // const moment = require('moment');
 
 require("dotenv").config();
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    secure: true,
+   host: 'smtp.gmail.com',
+    port: 465,
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD
+    }
+});
+
+async function sendOTPEmail(email, otp) {
+    const mailOptions = {
+        from: '"Irise" <Iriswomenonline@gmail.com>',
+        to: email,
+        subject: 'Your OTP Code',
+        text: `Your OTP code is: ${otp}`
+    };
+
+    await transporter.sendMail(mailOptions);
+}
 
 const generateJwtToken = (user) => {
     return jwt.sign({ user }, process.env.JWTS_KEY, { expiresIn: "7d" });
@@ -19,84 +42,122 @@ const generateJwtToken = (user) => {
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000);
 }
-
-
+// user login with email
 
 exports.login = async (req, res) => {
-    const email = req.body.email;
-    const otp = generateOTP();
+  const email = req.body.email;
+  const otp = generateOTP();
 
-    try {
-        let user = await User.findOne({ email: email });
+  try {
+      let user = await User.findOne({ email: email });
 
-        if (user) {
-            user.otp = otp;
-        } else {
-            return res.status(404).json({ message: "User not found" });
-        }
+      if (user) {
+          user.otp = otp;
+      } else {
+          return res.status(404).json({ message: "User not found" });
+      }
 
-        const userData = await user.save();
+      const userData = await user.save();
 
-        // Send OTP to the user
-        res.json({
-            message: "OTP sent successfully",
-            data: {
-                id: userData._id,
-                email: userData.email,
-                name: userData.name
-            }
-        });
-    } catch (err) {
-        console.log("this is the errro==>", err)
-        res.status(500).send("Error storing OTP");
-    }
+      // Send OTP email
+      await sendOTPEmail(email, otp);
+
+      res.json({
+          message: "OTP sent successfully",
+          data: {
+              id: userData._id,
+              email: userData.email,
+              name: userData.name
+          }
+      });
+  } catch (err) {
+      console.log("this is the error==>", err);
+      res.status(500).send("Error storing or sending OTP");
+  }
 };
+
+// exports.login = async (req, res) => {
+//     const email = req.body.email;
+//     const otp = generateOTP();
+
+//     try {
+//         let user = await User.findOne({ email: email });
+
+//         if (user) {
+//             user.otp = otp;
+//         } else {
+//             return res.status(404).json({ message: "User not found" });
+//         }
+
+//         const userData = await user.save();
+
+//         // Send OTP to the user
+//         res.json({
+//             message: "OTP sent successfully",
+//             data: {
+//                 id: userData._id,
+//                 email: userData.email,
+//                 name: userData.name
+//             }
+//         });
+//     } catch (err) {
+//         console.log("this is the errro==>", err)
+//         res.status(500).send("Error storing OTP");
+//     }
+// };
 // register user with email and name
 exports.register = async (req, res) => {
-    const { email, name } = req.body;
-    const otp = generateOTP();
+  const { email, name } = req.body;
+  const otp = generateOTP();
 
-    try {
-        let user = await User.findOne({ email: email });
+  try {
+      let user = await User.findOne({ email: email });
 
-        if (user) {
-            if (user.isVerified) {
-                return res.status(400).json({ message: "User already registered" });
-            } else {
-                user.otp = otp;
-                await user.save();
-                return res.status(200).json({
-                    message: "OTP updated successfully",
-                    data: {
-                        id: user._id,
-                        email: user.email,
-                        name: user.name
-                    }
-                });
-            }
-        }
+      if (user) {
+          if (user.isVerified) {
+              return res.status(400).json({ message: "User already registered" });
+          } else {
+              user.otp = otp;
+              await user.save();
 
-        user = new User({
-            email: email,
-            name: name,
-            otp: otp,
-            isVerified: false
-        });
+              // Send OTP Email
+              await sendOTPEmail(email, otp);
 
-        const userData = await user.save();
+              return res.status(200).json({
+                  message: "OTP updated successfully and sent via email",
+                  data: {
+                      id: user._id,
+                      email: user.email,
+                      name: user.name
+                  }
+              });
+          }
+      }
 
-        res.status(201).json({
-            message: "User registered successfully",
-            data: {
-                id: userData._id,
-                email: userData.email,
-                name: userData.name
-            }
-        });
-    } catch (err) {
-        console.log("this is the error==>", err);
-        res.status(500).send("Error registering user");
-    }
+      user = new User({
+          email: email,
+          name: name,
+          otp: otp,
+          isVerified: false
+      });
+
+      const userData = await user.save();
+
+      // Send OTP Email
+      await sendOTPEmail(email, otp);
+
+      res.status(201).json({
+          message: "User registered successfully and OTP sent via email",
+          data: {
+              id: userData._id,
+              email: userData.email,
+              name: userData.name
+          }
+      });
+  } catch (err) {
+      console.log("this is the error==>", err);
+      res.status(500).send("Error registering user");
+  }
 };
 
 //verify otp on the basis of email

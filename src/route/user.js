@@ -3,13 +3,18 @@ const router=app.Router()
 const userController=require("../controller/user.controller")
 const authenticateToken = require('../middleware/verifyToken');
 const multer = require('multer');
-// console.log("before cloudinary")
 
 
 // // Multer middleware to handle file upload
 const storage = multer.memoryStorage(); // Store file in memory for direct Cloudinary upload
 const upload = multer({ storage });
 // router.use(authenticateToken);
+
+
+
+
+
+
 //make loging api for the user
 router.post("/login",userController.login);
 
