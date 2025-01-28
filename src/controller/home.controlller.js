@@ -9,6 +9,7 @@ exports.latestArrivals = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5)
             .select('_id name price images');
+          
         const response = {
             message: "success",
             status: 200,
@@ -65,12 +66,10 @@ exports.topCollection = async (req, res) => {
       },
       {
         $project: {
-          productId: "$_id",
-          productName: "$product.name",
-          totalQuantity: 1,
-          price: "$product.price",
-          category: "$product.categories",
-          images:"$product.images",
+          _id: "$_id", // Keep the productId
+          name: "$product.name", // Get the name
+          price: "$product.price", // Get the price
+          images: "$product.images", // Get the images
         },
       },
     ]);
@@ -82,12 +81,10 @@ exports.topCollection = async (req, res) => {
         { $sample: { size: remainingCount } }, // Fetch random products
         {
           $project: {
-            productId: "$_id",
-            productName: "$name",
-            totalQuantity: { $literal: 0 }, // Set default totalQuantity as 0
-            price: "$price",
-            category: "$categories",
-            images:"$images",
+            _id: "$_id", // Keep the productId
+            name: "$name", // Get the name
+            price: "$price", // Get the price
+            images: "$images", // Get the images
           },
         },
       ]);
@@ -99,7 +96,8 @@ exports.topCollection = async (req, res) => {
     // Respond with the products
     res.status(200).json({
       message: "Top products fetched successfully",
-      products: orders,
+      status: 200,
+      data: orders, // Data follows the same structure
     });
   } catch (error) {
     console.error("Error fetching top products:", error);
