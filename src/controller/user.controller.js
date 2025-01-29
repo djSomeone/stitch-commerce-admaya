@@ -905,63 +905,43 @@ exports.getAllContactUsMessages = async (req, res) => {
 //filter product (panding )
 
 exports.filterProduct = async (req, res) => {
-  const { category, subcategory, minPrice, maxPrice, colors, size } = req.query;
-
-  // Build filter object based on the query parameters
-  const filter = {};
-
-  if (category) {
-    filter.categories = category;
-  }
-  
-  if (subcategory) {
-    filter.subcategory = subcategory;
-  }
-
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) {
-      filter.price.$gte = minPrice; // Greater than or equal to minPrice
-    }
-    if (maxPrice) {
-      filter.price.$lte = maxPrice; // Less than or equal to maxPrice
-    }
-  }
-
-  if (colors) {
-    filter.colors = { $in: colors.split(',') }; // Filter by colors (split if multiple colors)
-  }
-
-  if (size) {
-    filter['sizes.size'] = size; // Filter by size (size is nested in 'sizes' array)
-  }
-
   try {
-    // Get products from the database based on the filter criteria
-    let products;
+      const { categories, subCategories, colors, minPrice, maxPrice, sortBy } = req.query;
+      const query = {};
 
-    // If there are no filters, return a maximum of 50 products
-    if (Object.keys(filter).length === 0) {
-      products = await Product.find().limit(50); // Limit to 50 products if no filters are applied
-    } else {
-      products = await Product.find(filter); // If filters are applied, apply them
-    }
+      if (categories) {
+          query.categories = { $in: categories.split(',') };
+      }
+      if (subCategories) {
+          query.subcategory = { $in: subCategories.split(',') };
+      }
+      if (colors) {
+          query.colors = { $all: colors.split(',') };
+      }
+      if (minPrice) {
+          query.price = { $gte: minPrice };
+      }
+      if (maxPrice) {
+          query.price = { ...query.price, $lte: maxPrice };
+      }
 
-    if (products.length === 0) {
-      return res.status(404).json({ message: 'No products found matching the criteria.' });
-    }
+      let products = await Product.find(query);
 
-    // Send filtered products as response
-    res.status(200).json({
-      message: 'Filtered products fetched successfully.',
-      products,
-    });
+      if (!categories && !subCategories && !colors && !minPrice && !maxPrice) {  // Check if no filters are applied
+          products = products.slice(0, 50); // Limit to 50 products if no filters
+      }
+
+
+      if (sortBy === 'lowToHigh') {
+          products.sort((a, b) => a.price - b.price);
+      } else if (sortBy === 'highToLow') {
+          products.sort((a, b) => b.price - a.price);
+      }
+
+      res.json(products);
   } catch (error) {
-    console.error('Error fetching filtered products:', error);
-    res.status(500).json({
-      message: 'An error occurred while fetching filtered products.',
-      error: error.message,
-    });
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: 'Failed to fetch products' });
   }
 }
 

@@ -77,6 +77,7 @@ router.get("/getContactUs", userController.getAllContactUsMessages);
 //add exchange
 router.post("/addExchange",authenticateToken, userController.addExchangeProduct);
 
-
+//filter product
+router.get("/filterProduct", userController.filterProduct);
 
 module.exports= router;
