@@ -435,8 +435,12 @@ exports.getUserOrders = async (req, res) => {
       userId,
       "paymentDetails.paymentStatus": "completed",
     })
-      .sort({ orderedDate: -1 }) // Sort by orderedDate in descending order
-      .limit(10); // Limit to the latest 10 orders
+      .sort({ orderedDate: -1 })
+      .limit(10)
+      .populate({
+        path: "productDetails.productId",
+        select: "name images price", // Only include the name and image fields
+      });
 
     if (!userOrders.length) {
       return res.status(404).json({ message: "No completed orders found for this user" });
@@ -451,6 +455,7 @@ exports.getUserOrders = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
