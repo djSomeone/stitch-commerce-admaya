@@ -383,6 +383,7 @@ exports.verifyPayment = async (req, res) => {
     razorpayOrderId,
     razorpaySignature,
     orderId,
+    userId,  // Added userId to the request body
   } = req.body;
 
   try {
@@ -396,10 +397,11 @@ exports.verifyPayment = async (req, res) => {
       return res.status(400).json({ error: "Payment verification failed" });
     }
 
-    // Update order in MongoDB
-    const order = await Order.findById(orderId);
+    // Find order by both orderId and userId
+    const order = await Order.findOne({ _id: orderId, userId: userId });
     if (!order) return res.status(404).json({ error: "Order not found" });
 
+    // Update the order document with payment details
     order.paymentDetails = {
       razorpayOrderId,
       razorpayPaymentId,
@@ -416,6 +418,7 @@ exports.verifyPayment = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 //get user order
 exports.getUserOrders = async (req, res) => {
