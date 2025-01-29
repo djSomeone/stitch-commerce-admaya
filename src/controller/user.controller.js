@@ -9,9 +9,14 @@ const UserWishlist = require('../model/wishlist.model');
 const UserAddress = require('../model/addresses.model');
 const ContactUs = require('../model/contactUs.model');
 const nodemailer = require('nodemailer');
+const Razorpay = require("razorpay");
 // const moment = require('moment');
 
 require("dotenv").config();
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -285,73 +290,161 @@ exports.getBanner = async (req, res) => {
 
 
 // order
-exports.placeOrder=async (req, res) => {
-    try {
-      const { userId, productDetails, totalPrice, paymentMethod, couponId } = req.body;
+// exports.placeOrder=async (req, res) => {
+//     try {
+//       const { userId, productDetails, totalPrice, paymentMethod, couponId } = req.body;
   
-      // Validate input fields
-      if (!userId || !productDetails || !totalPrice || !paymentMethod) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+//       // Validate input fields
+//       if (!userId || !productDetails || !totalPrice || !paymentMethod) {
+//         return res.status(400).json({ error: "Missing required fields" });
+//       }
   
-      // Calculate dates
-      const orderedDate = new Date();
-      const estimatedDate = new Date(orderedDate);
-      estimatedDate.setDate(estimatedDate.getDate() + 3); // Add 3 days for estimated delivery
-      const deliveryDate = new Date(estimatedDate);
-      deliveryDate.setDate(deliveryDate.getDate() + 1); // Add 1 day for actual delivery
+//       // Calculate dates
+//       const orderedDate = new Date();
+//       const estimatedDate = new Date(orderedDate);
+//       estimatedDate.setDate(estimatedDate.getDate() + 3); // Add 3 days for estimated delivery
+//       const deliveryDate = new Date(estimatedDate);
+//       deliveryDate.setDate(deliveryDate.getDate() + 1); // Add 1 day for actual delivery
   
-      // Create new order
-      const newOrder = new Order({
-        userId,
-        productDetails, // Ensure productDetails follows the required schema
-        totalPrice,
-        paymentMethod,
-        orderedDate,
-        estimatedDate,
-        deliveryDate,
-        couponId, // Optional
-      });
+//       // Create new order
+//       const newOrder = new Order({
+//         userId,
+//         productDetails, // Ensure productDetails follows the required schema
+//         totalPrice,
+//         paymentMethod,
+//         orderedDate,
+//         estimatedDate,
+//         deliveryDate,
+//         couponId, // Optional
+//       });
   
-      // Save the order to the database
-      const savedOrder = await newOrder.save();
+//       // Save the order to the database
+//       const savedOrder = await newOrder.save();
   
-      res.status(201).json({
-        message: "Order placed successfully",
-        order: savedOrder,
-      });
-    } catch (error) {
-      console.error("Error adding order:", error);
-      res.status(500).json({ error: error.message });
-    }
+//       res.status(201).json({
+//         message: "Order placed successfully",
+//         order: savedOrder,
+//       });
+//     } catch (error) {
+//       console.error("Error adding order:", error);
+//       res.status(500).json({ error: error.message });
+//     }
+//   }
+// create order
+exports.createOrder =  async (req, res) => {
+  const { userId, productDetails, totalPrice, paymentMethod } = req.body;
+
+  if (!totalPrice || totalPrice <= 0) {
+    return res.status(400).json({ error: "Invalid total price" });
   }
 
-exports.getUserOrders = async (req, res) => {
-    try {
-      const { userId } = req.params;
-  
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
-      }
-  
-      // Fetch the latest 10 orders for the user, sorted by orderedDate (descending)
-      const userOrders = await Order.find({ userId })
-        .sort({ orderedDate: -1 }) // Sort by orderedDate in descending order
-        .limit(10); // Limit to the latest 10 orders
-  
-      if (!userOrders.length) {
-        return res.status(404).json({ message: "No orders found for this user" });
-      }
-  
-      res.status(200).json({
-        message: "Orders fetched successfully",
-        orders: userOrders,
-      });
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-      res.status(500).json({ error: error.message });
-    }
+  try {
+    // Create Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+      amount: totalPrice * 100, // Amount in paisa (multiply by 100)
+      currency: "INR",
+      receipt: `order_${Date.now()}`,
+    });
+
+    // Save order in MongoDB with Razorpay order ID
+    const order = new Order({
+      userId,
+      productDetails,
+      totalPrice,
+      paymentMethod,
+      paymentDetails: {
+        razorpayOrderId: razorpayOrder.id,
+        paymentStatus: "pending",
+      },
+      orderStatus: "ordered",
+      estimatedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Example: 7 days from now
+    });
+
+    await order.save();
+
+    res.status(201).json({
+      success: true,
+      orderId: order._id,
+      razorpayOrderId: razorpayOrder.id,
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
+};
+
+//verifyPayment
+exports.verifyPayment = async (req, res) => {
+  const {
+    razorpayPaymentId,
+    razorpayOrderId,
+    razorpaySignature,
+    orderId,
+  } = req.body;
+
+  try {
+    // Generate signature to verify payment
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
+
+    if (generatedSignature !== razorpaySignature) {
+      return res.status(400).json({ error: "Payment verification failed" });
+    }
+
+    // Update order in MongoDB
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    order.paymentDetails = {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      paymentStatus: "completed",
+    };
+    order.paymentDate = new Date();
+
+    await order.save();
+
+    res.status(200).json({ success: true, message: "Payment verified and order updated" });
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+//get user order
+exports.getUserOrders = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // Fetch the latest 10 orders for the user with payment status completed
+    const userOrders = await Order.find({
+      userId,
+      "paymentDetails.paymentStatus": "completed",
+    })
+      .sort({ orderedDate: -1 }) // Sort by orderedDate in descending order
+      .limit(10); // Limit to the latest 10 orders
+
+    if (!userOrders.length) {
+      return res.status(404).json({ message: "No completed orders found for this user" });
+    }
+
+    res.status(200).json({
+      message: "Completed orders fetched successfully",
+      orders: userOrders,
+    });
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 
   // cart

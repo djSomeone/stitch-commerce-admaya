@@ -31,7 +31,11 @@ router.post("/upload", upload.single('image'), userController.uploadBanner);
 router.get("/banner", userController.getBanner);
 
 //place order
-router.post("/placeOrder",authenticateToken, userController.placeOrder);
+router.post("/create-order",authenticateToken, userController.createOrder);
+
+//verify payment
+router.post("/verify-payment", userController.verifyPayment);
+
 
 //get user order
 router.get("/user-orders/:userId",authenticateToken, userController.getUserOrders);

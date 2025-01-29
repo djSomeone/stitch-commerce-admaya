@@ -76,10 +76,20 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  paymentDetails: {
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
+    razorpaySignature: { type: String },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed", "refunded"],
+      default: "pending",
+    },
+  },
   paymentMethod: {
     type: String,
-    enum: ["credit_card", "debit_card", "net_banking", "UPI", "paypal"],
-    required: true,
+    enum: ["credit_card", "debit_card", "net_banking", "UPI", "paypal", "razorpay"],
+    required: false,
   },
   orderStatus: {
     type: String,
