@@ -906,44 +906,55 @@ exports.getAllContactUsMessages = async (req, res) => {
 
 exports.filterProduct = async (req, res) => {
   try {
-      const { categories, subCategories, colors, minPrice, maxPrice, sortBy } = req.query;
-      const query = {};
+    const { categories, subCategories, colors, minPrice, maxPrice, sortBy } = req.query;
+    const query = {};
 
-      if (categories) {
-          query.categories = { $in: categories.split(',') };
-      }
-      if (subCategories) {
-          query.subcategory = { $in: subCategories.split(',') };
-      }
-      if (colors) {
-          query.colors = { $all: colors.split(',') };
-      }
-      if (minPrice) {
-          query.price = { $gte: minPrice };
-      }
-      if (maxPrice) {
-          query.price = { ...query.price, $lte: maxPrice };
-      }
+    if (categories) {
+      query.categories = { $in: categories.split(',') };
+    }
+    if (subCategories) {
+      query.subcategory = { $in: subCategories.split(',') };
+    }
+    if (colors) {
+      query.colors = { $all: colors.split(',') };
+    }
+    if (minPrice) {
+      query.price = { $gte: minPrice };
+    }
+    if (maxPrice) {
+      query.price = { ...query.price, $lte: maxPrice };
+    }
 
-      let products = await Product.find(query);
+    let products = await Product.find(query);
 
-      if (!categories && !subCategories && !colors && !minPrice && !maxPrice) {  // Check if no filters are applied
-          products = products.slice(0, 50); // Limit to 50 products if no filters
-      }
+    if (!categories && !subCategories && !colors && !minPrice && !maxPrice) {
+      products = products.slice(0, 50);
+    }
+
+    if (sortBy === 'lowToHigh') {
+      products.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'highToLow') {
+      products.sort((a, b) => b.price - a.price);
+    }
+
+    // Get unique categories and colors from the database
+    const availableCategories = await Product.distinct('categories');
+    const availableColors = await Product.distinct('colors');
 
 
-      if (sortBy === 'lowToHigh') {
-          products.sort((a, b) => a.price - b.price);
-      } else if (sortBy === 'highToLow') {
-          products.sort((a, b) => b.price - a.price);
-      }
 
-      res.json(products);
+    res.json({
+      products,
+      availableCategories,
+      availableColors,
+     
+    });
   } catch (error) {
-      console.error("Error fetching products:", error);
-      res.status(500).json({ error: 'Failed to fetch products' });
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: 'Failed to fetch products' });
   }
-}
+};
+
 
 exports.addExchangeProduct = async (req, res) => {
   // const { orderId } = req.params;
