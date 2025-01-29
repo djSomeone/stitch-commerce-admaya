@@ -34,7 +34,7 @@ router.get("/banner", userController.getBanner);
 router.post("/create-order",authenticateToken, userController.createOrder);
 
 //verify payment
-router.post("/verify-payment", userController.verifyPayment);
+router.post("/verify-payment",authenticateToken, userController.verifyPayment);
 
 
 //get user order
