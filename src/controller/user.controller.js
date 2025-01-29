@@ -332,7 +332,7 @@ exports.getBanner = async (req, res) => {
 //   }
 // create order
 exports.createOrder =  async (req, res) => {
-  const { userId, productDetails, totalPrice, paymentMethod } = req.body;
+  const { userId, productDetails, totalPrice, paymentMethod, couponId,addressId } = req.body;
 
   if (!totalPrice || totalPrice <= 0) {
     return res.status(400).json({ error: "Invalid total price" });
@@ -357,6 +357,9 @@ exports.createOrder =  async (req, res) => {
         paymentStatus: "pending",
       },
       orderStatus: "ordered",
+      couponId,
+      addressId,
+      orderedDate: new Date(),
       estimatedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Example: 7 days from now
     });
 

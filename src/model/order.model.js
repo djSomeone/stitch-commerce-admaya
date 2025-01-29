@@ -109,6 +109,11 @@ const orderSchema = new mongoose.Schema({
     ref: "Coupon",
     required: false,
   },
+  addressId:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserAddress",
+    required: true,
+  },
   exchanges: [exchangeSchema], // Embedded Exchanges
 });
 
