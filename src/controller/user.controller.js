@@ -951,8 +951,7 @@ exports.filterProduct = async (req, res) => {
 }
 
 exports.addExchangeProduct = async (req, res) => {
-  // const { orderId } = req.params;
-  const { orderId,productId, reasonForExchange, problem, size, color, arrivalDate } = req.body;
+  const { orderId, productId, reasonForExchange, problem, size, color } = req.body;
 
   try {
     // Find the order by orderId
@@ -971,6 +970,10 @@ exports.addExchangeProduct = async (req, res) => {
       return res.status(400).json({ message: 'Product not found in the order' });
     }
 
+    // Compute arrival date as 3 days from now
+    const arrivalDate = new Date();
+    arrivalDate.setDate(arrivalDate.getDate() + 3);
+
     // Create the exchange object
     const newExchange = {
       productId,
@@ -978,7 +981,7 @@ exports.addExchangeProduct = async (req, res) => {
       problem,
       size: size || productDetails.size, // Optional, if size doesn't change
       color: color || productDetails.color, // Optional, if color doesn't change
-      // arrivalDate,
+      arrivalDate,
       exchangeStatus: 'ordered', // Set default status to 'ordered'
     };
 
@@ -998,6 +1001,7 @@ exports.addExchangeProduct = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
 
 exports.cancelExchange = async (req, res) => {
   const { orderId, exchangeId } = req.body;
