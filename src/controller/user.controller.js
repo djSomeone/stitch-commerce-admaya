@@ -998,3 +998,43 @@ exports.addExchangeProduct = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+exports.cancelExchange = async (req, res) => {
+  const { orderId, exchangeId } = req.body;
+
+  try {
+    // Find the order by orderId
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Find the specific exchange in the order
+    const exchange = order.exchanges.id(exchangeId);
+
+    if (!exchange) {
+      
+      return res.status(400).json({ message: 'Exchange not found' });
+    }
+
+    // Check if the exchange is already cancelled
+    if (exchange.isCancelled) {
+      return res.status(400).json({ message: 'Exchange is already cancelled' });
+    }
+
+    // Set the isCancelled flag to true
+    exchange.isCancelled = true;
+    
+    // Save the updated order
+    await order.save();
+
+    res.json({
+      message: 'Exchange cancelled successfully',
+      order: order,
+    });
+  } catch (error) {
+    console.error('Error cancelling exchange:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

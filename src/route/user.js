@@ -80,4 +80,7 @@ router.post("/addExchange",authenticateToken, userController.addExchangeProduct)
 //filter product
 router.get("/filterProduct", userController.filterProduct);
 
+// cancel product
+router.post("/cancelProductExchange",authenticateToken, userController.cancelExchange);
+
 module.exports= router;

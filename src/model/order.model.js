@@ -15,6 +15,10 @@ const exchangeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  isCancelled: {
+    type: Boolean,
+    default: false,
+  },
   size: {
     type: String,
     required: false, // Optional if size does not change
