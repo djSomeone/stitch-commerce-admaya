@@ -978,7 +978,7 @@ exports.addExchangeProduct = async (req, res) => {
       problem,
       size: size || productDetails.size, // Optional, if size doesn't change
       color: color || productDetails.color, // Optional, if color doesn't change
-      arrivalDate,
+      // arrivalDate,
       exchangeStatus: 'ordered', // Set default status to 'ordered'
     };
 
