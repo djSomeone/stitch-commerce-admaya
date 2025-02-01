@@ -203,6 +203,42 @@ exports.verifyOtp = async (req, res) => {
     }
 }
 
+exports.listUsers =  async (req, res) => {
+  try {
+    const usersWithOrderCount = await User.aggregate([
+      {
+        $lookup: {
+          from: "orders", // Collection name for orders in MongoDB
+          localField: "_id",
+          foreignField: "userId",
+          as: "orders",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          isVerified: 1,
+          totalOrders: { $size: "$orders" }, // Count the number of orders
+        },
+      },
+    ]);
+
+    const response={
+      message: "Users fetched successfully",
+      users: usersWithOrderCount
+    }
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching users with order count:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+
+
 //we are passing file image in request ,
 // upload banner image you have to upload it on cloudinary and after we get url, save in the database
 exports.uploadBanner = async (req, res) => {
@@ -455,7 +491,6 @@ exports.getUserOrders = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 
 

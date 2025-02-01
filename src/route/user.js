@@ -24,6 +24,10 @@ router.post("/verifyOtp", userController.verifyOtp);
 // register user
 router.post("/register", userController.register);
 
+// get user list
+router.get("/list", userController.listUsers);
+
+
 //upload user banner
 router.post("/upload", upload.single('image'), userController.uploadBanner);
 
