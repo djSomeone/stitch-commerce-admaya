@@ -27,6 +27,10 @@ router.post("/register", userController.register);
 // get user list
 router.get("/list", userController.listUsers);
 
+//get user details by id
+router.get("/details/:userId", userController.getUserDetails);
+
+
 
 //upload user banner
 router.post("/upload", upload.single('image'), userController.uploadBanner);

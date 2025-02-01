@@ -11,6 +11,7 @@ const ContactUs = require('../model/contactUs.model');
 const nodemailer = require('nodemailer');
 const Razorpay = require("razorpay");
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 // const moment = require('moment');
 
 require("dotenv").config();
@@ -236,6 +237,57 @@ exports.listUsers =  async (req, res) => {
   }
 };
 
+exports.getUserDetails = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Ensure the userId is valid
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    const userDetails = await User.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(userId) },
+      },
+      {
+        $lookup: {
+          from: "orders",
+          localField: "_id",
+          foreignField: "userId",
+          as: "orders",
+        },
+      },
+      {
+        $lookup: {
+          from: "useraddresses",
+          localField: "_id",
+          foreignField: "userId",
+          as: "addressDetails",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          isVerified: 1,
+          totalOrders: { $size: "$orders" },
+          address: { $arrayElemAt: ["$addressDetails.addresses",0] },
+        },
+      },
+    ]);
+
+    if (!userDetails || userDetails.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.status(200).json(userDetails[0]);
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 
 
