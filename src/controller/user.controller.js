@@ -12,6 +12,7 @@ const nodemailer = require('nodemailer');
 const Razorpay = require("razorpay");
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const { response } = require("express");
 // const moment = require('moment');
 
 require("dotenv").config();
@@ -203,7 +204,7 @@ exports.verifyOtp = async (req, res) => {
         res.status(500).send("Error verifying OTP");
     }
 }
-
+// get list
 exports.listUsers =  async (req, res) => {
   try {
     const usersWithOrderCount = await User.aggregate([
@@ -237,6 +238,7 @@ exports.listUsers =  async (req, res) => {
   }
 };
 
+// get user details
 exports.getUserDetails = async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -508,6 +510,29 @@ exports.verifyPayment = async (req, res) => {
   }
 };
 
+exports.listExchange= async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("exchanges.productId", "name price") // Optionally populate product details
+      .exec();
+
+    if (!orders || orders.length === 0) {
+      console.log("No orders found.");
+      return;
+    }
+
+    // Extract all exchanges from the orders
+    const allExchanges = orders.flatMap(order => order.exchanges);
+    const response={
+      message: "Exchanges fetched successfully",
+      exchanges: allExchanges
+    }
+    return res.status(200).json(response);
+    
+  } catch (err) {
+    console.error("Error retrieving exchanges:", err);
+  }
+};
 
 //get user order
 exports.getUserOrders = async (req, res) => {
@@ -544,6 +569,49 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
+// order list
+exports.orderList = async (req, res) => {
+  try {
+    const orderList = await Order.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $project: {
+          _id: 1,
+          username: "$userDetails.name",
+          orderId: "$_id",
+          orderDate: "$orderedDate",
+          totalPrice: 1,
+          paymentMethod: 1,
+        },
+      },
+      {
+        $sort: { orderDate: -1 }, // Sort by most recent order
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Order list fetched successfully",
+      data: orderList,
+    });
+  } catch (error) {
+    console.error("Error fetching order list:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching order list",
+    });
+  }
+};
 
 
   // cart

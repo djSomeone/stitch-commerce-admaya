@@ -48,6 +48,12 @@ router.post("/verify-payment",authenticateToken, userController.verifyPayment);
 //get user order
 router.get("/user-orders/:userId",authenticateToken, userController.getUserOrders);
 
+// order list
+router.get("/order-list", userController.orderList);
+
+
+
+
 //add to cart
 router.post("/addToCart",authenticateToken, userController.addCartProduct);
 
@@ -84,6 +90,11 @@ router.get("/getContactUs", userController.getAllContactUsMessages);
 
 //add exchange
 router.post("/addExchange",authenticateToken, userController.addExchangeProduct);
+
+// list exchange
+router.get("/listExchange", userController.listExchange);
+
+
 
 //filter product
 router.get("/filterProduct", userController.filterProduct);
