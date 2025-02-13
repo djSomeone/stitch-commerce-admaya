@@ -1,5 +1,6 @@
 const express = require('express');
 const userRoute=require("./src/route/user.js")
+const dashboardRoute=require("./src/route/dashbooard.js")
 const productRoute=require("./src/route/product.js")
 const homeRoute=require("./src/route/home.js")
 const couponRoute=require("./src/route/coupon.js")
@@ -40,6 +41,7 @@ app.use(morgan("combined"))
 app.use(cors())
 // this adds middel ware to the all routes 
 app.use(express.json())
+app.use('/dashboard',dashboardRoute)
 app.use('/user',userRoute)
 app.use('/product',productRoute)
 app.use('/home',homeRoute)
