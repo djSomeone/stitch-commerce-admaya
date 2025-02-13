@@ -261,7 +261,9 @@ exports.bestSellingProducts=async (req, res) => {
                     totalSold: 1,
                     totalOrders: 1,
                     totalVisits: "$productInfo.visits", // Assuming "visits" is a field in the Product schema
-                    
+                    totalStockRemaining: {
+                        $sum: "$productInfo.sizes.quantity" // Summing stock across all sizes
+                    }
                 }
             },
             {
