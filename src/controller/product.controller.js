@@ -82,24 +82,33 @@ exports.allProducts = async (req, res) => {
 
 //product fetch product detail 
 exports.getProductDetail = async (req, res) => {
-    try {
-        const productId = req.params.id;
-        const product = await Product.findById(productId);
+  try {
+      const productId = req.params.id;
+      const viewProduct = req.query.viewProduct === 'true'; // Default is false
 
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-        const data ={
-            message:"success",
-            status:200,
-            data:product
-        }
-        res.status(200).json(data);
-    } catch (error) {
-        console.error('Error fetching product details:', error.message);
-        res.status(500).json({
-            message: 'An error occurred while fetching the product details.',
-            error: error.message,
-        });
-    }
+      const product = await Product.findById(productId);
+
+      if (!product) {
+          return res.status(404).json({ message: 'Product not found' });
+      }
+
+      // If viewProduct is true, increment the visit count
+      if (viewProduct) {
+          product.visit = (BigInt(product.visit) + 1n).toString();
+          await product.save(); // Save updated visit count
+      }
+
+      res.status(200).json({
+          message: "success",
+          status: 200,
+          data: product
+      });
+
+  } catch (error) {
+      console.error('Error fetching product details:', error.message);
+      res.status(500).json({
+          message: 'An error occurred while fetching the product details.',
+          error: error.message,
+      });
+  }
 };

@@ -24,6 +24,17 @@ const productSchema = new mongoose.Schema(
       minlength: 2, // Minimum length for product name
       maxlength: 100 // Maximum length for product name
     },
+    visit: { 
+      type: String, 
+      required: true, 
+      default: '0', 
+      validate: {
+        validator: function (v) {
+          return /^\d+$/.test(v); // Ensures it's a positive integer string
+        },
+        message: props => `${props.value} is not a valid visit count!`
+      }
+    },
     price: { 
       type: Number, 
       required: true, 
