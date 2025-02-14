@@ -655,6 +655,49 @@ exports.getUserOrders = async (req, res) => {
 };
 
 // order list
+// exports.orderList = async (req, res) => {
+//   try {
+//     const orderList = await Order.aggregate([
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "userId",
+//           foreignField: "_id",
+//           as: "userDetails",
+//         },
+//       },
+//       {
+//         $unwind: "$userDetails",
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           username: "$userDetails.name",
+//           orderId: "$_id",
+//           orderDate: "$orderedDate",
+//           totalPrice: 1,
+//           paymentMethod: 1,
+
+//         },
+//       },
+//       {
+//         $sort: { orderDate: -1 }, // Sort by most recent order
+//       },
+//     ]);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Order list fetched successfully",
+//       data: orderList,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching order list:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error fetching order list",
+//     });
+//   }
+// };
 exports.orderList = async (req, res) => {
   try {
     const orderList = await Order.aggregate([
@@ -670,6 +713,14 @@ exports.orderList = async (req, res) => {
         $unwind: "$userDetails",
       },
       {
+        $lookup: {
+          from: "products",
+          localField: "productDetails.productId",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      {
         $project: {
           _id: 1,
           username: "$userDetails.name",
@@ -677,6 +728,36 @@ exports.orderList = async (req, res) => {
           orderDate: "$orderedDate",
           totalPrice: 1,
           paymentMethod: 1,
+          products: {
+            $map: {
+              input: "$productDetails",
+              as: "prod",
+              in: {
+                productId: "$$prod.productId",
+                size: "$$prod.size",
+                quantity: "$$prod.quantity",
+                color: "$$prod.color",
+                productName: {
+                  $arrayElemAt: [
+                    "$productInfo.name",
+                    { $indexOfArray: ["$productInfo._id", "$$prod.productId"] },
+                  ],
+                },
+                price: {
+                  $arrayElemAt: [
+                    "$productInfo.price",
+                    { $indexOfArray: ["$productInfo._id", "$$prod.productId"] },
+                  ],
+                },
+                images: {
+                  $arrayElemAt: [
+                    "$productInfo.images",
+                    { $indexOfArray: ["$productInfo._id", "$$prod.productId"] },
+                  ],
+                },
+              },
+            },
+          },
         },
       },
       {
@@ -697,6 +778,9 @@ exports.orderList = async (req, res) => {
     });
   }
 };
+
+
+
 
 
   // cart
