@@ -42,7 +42,7 @@ app.use(morgan("combined"))
 // this is for the access for the client to use the response else browser will block the response
 app.use(cors())
 // this adds middel ware to the all routes 
-app.use(express.json())
+// app.use(express.json())
 app.use('/dashboard',dashboardRoute)
 app.use('/user',userRoute)
 app.use('/product',productRoute)
