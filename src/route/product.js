@@ -20,5 +20,5 @@ router.post("/addProduct", upload.array('images', 2),uploadImagesToCloudinary, p
 router.get("/allProduct",authenticateToken,productController.allProducts);
 
 //product detail
-router.get("/getProductDetail/:id",authenticateToken,productController.getProductDetail);
+router.get("/getProductDetail/:id",productController.getProductDetail);
 module.exports= router;

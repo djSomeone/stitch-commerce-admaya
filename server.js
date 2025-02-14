@@ -32,15 +32,14 @@ mongoose.connect(process.env.MONGO_URL, {
 }).catch((err) => {
     console.log(err);
 });
-
+// this is for the access for the client to use the response else browser will block the response
+app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-
 // for loging the rq,rs
 app.use(morgan("combined"))
-// this is for the access for the client to use the response else browser will block the response
-app.use(cors())
+
 // this adds middel ware to the all routes 
 // app.use(express.json())
 app.use('/dashboard',dashboardRoute)
