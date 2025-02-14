@@ -22,6 +22,8 @@ router.get("/bestSellingProducts",dashboardController.bestSellingProducts);
 
 router.get("/listProducts",productController.allProducts)
 
+router.get("/productDetails/:id",productController.getProductDetail)
+
 
 
 module.exports= router;
