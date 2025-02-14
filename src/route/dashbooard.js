@@ -1,6 +1,8 @@
 const app = require("express");
 const router=app.Router();
 const dashboardController=require("../controller/dashboard.controller");
+const productController=require("../controller/product.controller");
+
 
 
 // this is for the card details
@@ -17,6 +19,8 @@ router.get("/categorySellCount",dashboardController.categorySellCount);
 
 // best selling product
 router.get("/bestSellingProducts",dashboardController.bestSellingProducts);
+
+router.get("/listProducts",productController.allProducts)
 
 
 
