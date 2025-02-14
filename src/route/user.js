@@ -39,10 +39,10 @@ router.post("/upload", upload.single('image'), userController.uploadBanner);
 router.get("/banner", userController.getBanner);
 
 //place order
-router.post("/create-order",authenticateToken, userController.createOrder);
+router.post("/create-order",authenticateToken, userController.createOrder1);
 
 //verify payment
-router.post("/verify-payment",authenticateToken, userController.verifyPayment);
+router.post("/verify-payment",authenticateToken, userController.verifyPayment1);
 
 
 //get user order

@@ -380,47 +380,7 @@ exports.getBanner = async (req, res) => {
 }
 
 
-// order
-// exports.placeOrder=async (req, res) => {
-//     try {
-//       const { userId, productDetails, totalPrice, paymentMethod, couponId } = req.body;
-  
-//       // Validate input fields
-//       if (!userId || !productDetails || !totalPrice || !paymentMethod) {
-//         return res.status(400).json({ error: "Missing required fields" });
-//       }
-  
-//       // Calculate dates
-//       const orderedDate = new Date();
-//       const estimatedDate = new Date(orderedDate);
-//       estimatedDate.setDate(estimatedDate.getDate() + 3); // Add 3 days for estimated delivery
-//       const deliveryDate = new Date(estimatedDate);
-//       deliveryDate.setDate(deliveryDate.getDate() + 1); // Add 1 day for actual delivery
-  
-//       // Create new order
-//       const newOrder = new Order({
-//         userId,
-//         productDetails, // Ensure productDetails follows the required schema
-//         totalPrice,
-//         paymentMethod,
-//         orderedDate,
-//         estimatedDate,
-//         deliveryDate,
-//         couponId, // Optional
-//       });
-  
-//       // Save the order to the database
-//       const savedOrder = await newOrder.save();
-  
-//       res.status(201).json({
-//         message: "Order placed successfully",
-//         order: savedOrder,
-//       });
-//     } catch (error) {
-//       console.error("Error adding order:", error);
-//       res.status(500).json({ error: error.message });
-//     }
-//   }
+
 // create order
 exports.createOrder =  async (req, res) => {
   const { userId, productDetails, totalPrice, paymentMethod, couponId,addressId } = req.body;
@@ -466,7 +426,6 @@ exports.createOrder =  async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 //verifyPayment
 exports.verifyPayment = async (req, res) => {
   const {
@@ -509,6 +468,132 @@ exports.verifyPayment = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// //////////test
+// updated for the queantity
+exports.createOrder1 = async (req, res) => {
+  const { userId, productDetails, totalPrice, paymentMethod, couponId, addressId } = req.body;
+
+  if (!totalPrice || totalPrice <= 0) {
+    return res.status(400).json({ error: "Invalid total price" });
+  }
+
+  try {
+    // Check product availability
+    for (const item of productDetails) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product not found: ${item.productId}` });
+      }
+
+      // Find the size in the sizes array
+      const sizeData = product.sizes.find((s) => s.size === item.size);
+      if (!sizeData || sizeData.quantity < item.quantity) {
+        return res.status(400).json({
+          error: `Insufficient stock for product: ${product.name}, size: ${item.size}`,
+        });
+      }
+    }
+
+    // Create Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+      amount: totalPrice * 100, // Amount in paisa (multiply by 100)
+      currency: "INR",
+      receipt: `order_${Date.now()}`,
+    });
+
+    // Save order in MongoDB with Razorpay order ID
+    const order = new Order({
+      userId,
+      productDetails,
+      totalPrice,
+      paymentDetails: {
+        razorpayOrderId: razorpayOrder.id,
+        paymentStatus: "pending",
+      },
+      orderStatus: "ordered",
+      couponId,
+      addressId,
+      orderedDate: new Date(),
+      estimatedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Example: 7 days from now
+    });
+
+    await order.save();
+
+    res.status(201).json({
+      success: true,
+      orderId: order._id,
+      razorpayOrderId: razorpayOrder.id,
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+exports.verifyPayment1 = async (req, res) => {
+  const {
+    razorpayPaymentId,
+    razorpayOrderId,
+    razorpaySignature,
+    orderId,
+    userId,
+  } = req.body;
+
+  try {
+    // Verify signature
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+      .digest("hex");
+
+    if (generatedSignature !== razorpaySignature) {
+      return res.status(400).json({ error: "Payment verification failed" });
+    }
+
+    // Find order
+    const order = await Order.findOne({ _id: orderId, userId });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    // Reduce the product quantity
+    for (const item of order.productDetails) {
+      const product = await Product.findById(item.productId);
+      if (!product) continue;
+
+      // Find the size inside the sizes array
+      const sizeIndex = product.sizes.findIndex((s) => s.size === item.size);
+      if (sizeIndex !== -1) {
+        product.sizes[sizeIndex].quantity -= item.quantity;
+
+        // Ensure quantity does not go below zero
+        if (product.sizes[sizeIndex].quantity < 0) {
+          product.sizes[sizeIndex].quantity = 0;
+        }
+      }
+
+      await product.save();
+    }
+
+    // Update order with payment details
+    order.paymentDetails = {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      paymentStatus: "completed",
+    };
+    order.paymentDate = new Date();
+
+    await order.save();
+
+    res.status(200).json({ success: true, message: "Payment verified, order updated, and stock reduced" });
+  } catch (error) {
+    console.error("Error verifying payment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+//////////
+
+
 
 exports.listExchange= async (req, res) => {
   try {
