@@ -33,14 +33,54 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendOTPEmail(email, otp) {
-    const mailOptions = {
-        from: '"Irise" <Iriswomenonline@gmail.com>',
-        to: email,
-        subject: 'Your OTP Code',
-        text: `Your OTP code is: ${otp}`
-    };
+  const mailOptions = {
+      from: '"Iris" <Iriswomenonline@gmail.com>',
+      to: email,
+      subject: 'Welcome to Iris! Your OTP Code Inside 🎉',
+      text: `Hello,
 
-    await transporter.sendMail(mailOptions);
+Welcome to Iris! We're excited to have you with us. 
+
+To complete your verification, please use the following OTP code:
+
+🔐 Your OTP Code: ${otp}
+
+This code is valid for a limited time. If you did not request this, please ignore this email.
+
+Thank you for joining us! If you need any help, feel free to reach out.
+
+Best regards,  
+Iris Team 💜`
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
+async function sendOrderUpdateEmail(email, orderStatus, courierName, trackingId, trackingLink) {
+  const mailOptions = {
+      from: '"Iris" <Iriswomenonline@gmail.com>',
+      to: email,
+      subject: "Order Status Updated",
+      text: `Your order status has been updated to: ${orderStatus}.\n
+      Courier: ${courierName || "Not Assigned"}\n
+      Tracking ID: ${trackingId || "Not Available"}\n
+      Tracking Link: ${trackingLink || "Not Available"}`
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
+// Function to send a special "delivered" email
+async function sendOrderDeliveredEmail(email) {
+  const mailOptions = {
+      from: '"Iris" <Iriswomenonline@gmail.com>',
+      to: email,
+      subject: "Your Order has been Delivered 🎉",
+      text: `Great news! Your order has been successfully delivered. We hope you enjoy your purchase!\n
+      Thank you for shopping with us! We appreciate your support. If you have any feedback, please let us know.`
+  };
+
+  await transporter.sendMail(mailOptions);
 }
 
 const generateJwtToken = (user) => {
@@ -654,50 +694,7 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
-// order list
-// exports.orderList = async (req, res) => {
-//   try {
-//     const orderList = await Order.aggregate([
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "userId",
-//           foreignField: "_id",
-//           as: "userDetails",
-//         },
-//       },
-//       {
-//         $unwind: "$userDetails",
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           username: "$userDetails.name",
-//           orderId: "$_id",
-//           orderDate: "$orderedDate",
-//           totalPrice: 1,
-//           paymentMethod: 1,
 
-//         },
-//       },
-//       {
-//         $sort: { orderDate: -1 }, // Sort by most recent order
-//       },
-//     ]);
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Order list fetched successfully",
-//       data: orderList,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching order list:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Error fetching order list",
-//     });
-//   }
-// };
 exports.orderList = async (req, res) => {
   try {
     const orderList = await Order.aggregate([
@@ -779,6 +776,49 @@ exports.orderList = async (req, res) => {
   }
 };
 
+// update order status
+exports.updateOrderStatus=async (req, res) => {
+  try {
+      const { orderId } = req.params;
+      const { orderStatus, courierName, courierTrackingId, courierTrackingLink } = req.body;
+
+      // Find the order by ID
+      const order = await Order.findById(orderId);
+      if (!order) {
+          return res.status(404).json({ message: "Order not found" });
+      }
+
+      // Fetch user details to get email
+      const user = await User.findById(order.userId);
+      if (!user) {
+          return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check what is being updated
+      const isOnlyStatusUpdate = orderStatus && !courierName && !courierTrackingId && !courierTrackingLink;
+
+      // Update the order details
+      order.orderStatus = orderStatus || order.orderStatus;
+      order.courierName = courierName || order.courierName;
+      order.courierTrackingId = courierTrackingId || order.courierTrackingId;
+      order.courierTrackingLink = courierTrackingLink || order.courierTrackingLink;
+
+      // Save the updated order
+      await order.save();
+
+      // Send appropriate email based on update type
+      if (orderStatus === "delivered") {
+          await sendOrderDeliveredEmail(user.email);
+      } else if (!isOnlyStatusUpdate) {
+          await sendOrderUpdateEmail(user.email, order.orderStatus, order.courierName, order.courierTrackingId, order.courierTrackingLink);
+      }
+
+      return res.status(200).json({ message: "Order updated successfully", order });
+  } catch (error) {
+      console.error("Error updating order:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 
 
 

@@ -101,6 +101,7 @@ const orderSchema = new mongoose.Schema({
     enum: ["ordered", "packaging", "ontheway", "delivered"],
     default: "ordered",
   },
+
   estimatedDate: {
     type: Date,
     required: true,
@@ -118,6 +119,18 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "UserAddress",
     required: true,
+  },
+  courierName: {
+    type: String,
+    required: false,
+  },
+  courierTrackingId: {
+    type: String,
+    required: false,
+  },
+  courierTrackingLink: {
+    type: String,
+    required: false,
   },
   exchanges: [exchangeSchema], // Embedded Exchanges
 });

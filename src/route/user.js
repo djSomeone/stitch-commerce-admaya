@@ -51,6 +51,9 @@ router.get("/user-orders/:userId",authenticateToken, userController.getUserOrder
 // order list
 router.get("/order-list", userController.orderList);
 
+// update the order status
+router.put("/update-order/:orderId",userController.updateOrderStatus);
+
 
 
 
