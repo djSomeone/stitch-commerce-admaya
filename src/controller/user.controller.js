@@ -725,6 +725,7 @@ exports.orderList = async (req, res) => {
           orderDate: "$orderedDate",
           totalPrice: 1,
           paymentMethod: 1,
+          orderStatus: 1, // Include order status in response
           products: {
             $map: {
               input: "$productDetails",
@@ -775,6 +776,7 @@ exports.orderList = async (req, res) => {
     });
   }
 };
+
 
 // update order status
 exports.updateOrderStatus=async (req, res) => {
