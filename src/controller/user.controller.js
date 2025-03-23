@@ -13,6 +13,7 @@ const Razorpay = require("razorpay");
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { response } = require("express");
+const ProductReview =require("../model/product_review.model")
 // const moment = require('moment');
 
 require("dotenv").config();
@@ -1408,5 +1409,101 @@ exports.cancelExchange = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+//  produuct review 
+exports.addProductReview=async (req, res) => {
+  try {
+    const { productId, userId, stars, comment } = req.body;
+
+    // Check if all required fields are provided
+    if (!productId || !userId || !stars) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Validate star rating
+    if (stars < 1 || stars > 5) {
+      return res.status(400).json({ message: "Stars must be between 1 and 5" });
+    }
+
+    // Create a new review
+    const review = new ProductReview({ productId, userId, stars, comment });
+    await review.save();
+
+    res.status(201).json({ message: "Review added successfully", review });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// fetch overall review and recent review
+
+exports.productReviewDetail=async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    // Convert productId to ObjectId
+    const productObjectId = new mongoose.Types.ObjectId(productId);
+
+    // 🔹 Calculate the overall rating (average stars)
+    const overallStats = await ProductReview.aggregate([
+      { $match: { productId: productObjectId } }, // Match correct product
+      {
+        $group: {
+          _id: "$productId",
+          avgRating: { $avg: "$stars" }, // Calculate average rating
+          totalReviews: { $sum: 1 }, // Count total reviews
+        }
+      }
+    ]);
+
+    let overallReview = {
+      avgRating: 0,
+      totalReviews: 0
+    };
+
+    if (overallStats.length > 0) {
+      overallReview = {
+        avgRating: parseFloat(overallStats[0].avgRating.toFixed(1)), // Round to 1 decimal place
+        totalReviews: overallStats[0].totalReviews
+      };
+    }
+
+    // 🔹 Get top 5 most highly rated reviews in the last month
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    let topReviews = await ProductReview.find({
+      productId: productObjectId,
+      createdAt: { $gte: oneMonthAgo }
+    })
+      .sort({ stars: -1, createdAt: -1 }) // Sort by highest stars, then most recent
+      .limit(5)
+      .populate("userId", "name email"); // Get user details
+
+    // 🔹 If less than 5 reviews in the last month, get the most recent ones
+    if (topReviews.length < 5) {
+      const additionalReviews = await ProductReview.find({
+        productId: productObjectId,
+        _id: { $nin: topReviews.map(r => r._id) } // Exclude already fetched reviews
+      })
+        .sort({ createdAt: -1 }) // Sort by recent
+        .limit(5 - topReviews.length)
+        .populate("userId", "name email");
+
+      topReviews = [...topReviews, ...additionalReviews];
+    }
+
+    res.status(200).json({
+      overallReview,
+      topReviews
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 
 

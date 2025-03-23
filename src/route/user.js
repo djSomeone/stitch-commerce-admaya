@@ -105,4 +105,10 @@ router.get("/filterProduct", userController.filterProduct);
 // cancel product
 router.post("/cancelProductExchange",authenticateToken, userController.cancelExchange);
 
+
+// review for the product
+router.post("/productReview",userController.addProductReview);
+
+router.get("/productReviewDetails/:productId",userController.productReviewDetail);
+
 module.exports= router;
