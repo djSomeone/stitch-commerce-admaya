@@ -111,4 +111,8 @@ router.post("/productReview",userController.addProductReview);
 
 router.get("/productReviewDetails/:productId",userController.productReviewDetail);
 
+router.get("/product/:productId/user/:userId/review",authenticateToken,userController.hasUserReviewedProduct);
+
+router.put("/product/:productId/user/:userId/updateReview", authenticateToken,userController.updateProductReview);
+
 module.exports= router;

@@ -1410,6 +1410,9 @@ exports.cancelExchange = async (req, res) => {
   }
 };
 
+
+
+// ====================Review of product==========================
 //  produuct review 
 exports.addProductReview=async (req, res) => {
   try {
@@ -1504,6 +1507,76 @@ exports.productReviewDetail=async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
+// check user Review for the product 
+
+exports.hasUserReviewedProduct = async (req, res) => {
+  try {
+    const { productId, userId } = req.params;
+
+    // Convert productId and userId to ObjectId
+    const productObjectId = new mongoose.Types.ObjectId(productId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Find the review for the given product by the specific user
+    const review = await ProductReview.findOne({
+      productId: productObjectId,
+      userId: userObjectId
+    }).populate("userId", "name email"); // Populate user details
+
+    if (!review) {
+      return res.status(404).json({ message: "No review found for this product by the user" });
+    }
+
+    res.status(200).json({ message: "Review found", review });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// update review 
+
+exports.updateProductReview = async (req, res) => {
+  try {
+    const { productId, userId } = req.params;
+    const { stars, comment } = req.body;
+
+    // Validate inputs
+    if (!stars && !comment) {
+      return res.status(400).json({ message: "Provide at least one field to update (stars or comment)" });
+    }
+
+    // Validate stars if provided
+    if (stars && (stars < 1 || stars > 5)) {
+      return res.status(400).json({ message: "Stars must be between 1 and 5" });
+    }
+
+    // Convert productId and userId to ObjectId
+    const productObjectId = new mongoose.Types.ObjectId(productId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Find and update the review
+    const updatedReview = await ProductReview.findOneAndUpdate(
+      { productId: productObjectId, userId: userObjectId }, // Match the correct review
+      { $set: { stars, comment } }, // Update only the provided fields
+      { new: true } // Return the updated review
+    ).populate("userId", "name email"); // Populate user details
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: "Review not found or user has not reviewed this product" });
+    }
+
+    res.status(200).json({ message: "Review updated successfully", updatedReview });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
 
 
 
