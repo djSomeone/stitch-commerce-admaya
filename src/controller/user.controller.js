@@ -9,7 +9,7 @@ const UserWishlist = require('../model/wishlist.model');
 const UserAddress = require('../model/addresses.model');
 const ContactUs = require('../model/contactUs.model');
 const nodemailer = require('nodemailer');
-const Razorpay = require("razorpay");
+// const Razorpay = require("razorpay");
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { response } = require("express");
@@ -17,10 +17,10 @@ const ProductReview =require("../model/product_review.model")
 // const moment = require('moment');
 
 require("dotenv").config();
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// const razorpay = new Razorpay({
+//   key_id: process.env.RAZORPAY_KEY_ID,
+//   key_secret: process.env.RAZORPAY_KEY_SECRET,
+// });
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -35,12 +35,12 @@ const transporter = nodemailer.createTransport({
 
 async function sendOTPEmail(email, otp) {
   const mailOptions = {
-      from: '"Iris" <Iriswomenonline@gmail.com>',
+      from: '"stitch" <stitchbae9@gmail.com>',
       to: email,
-      subject: 'Welcome to Iris! Your OTP Code Inside 🎉',
+      subject: 'Welcome to stitch! Your OTP Code Inside 🎉',
       text: `Hello,
 
-Welcome to Iris! We're excited to have you with us. 
+Welcome to stitch! We're excited to have you with us. 
 
 To complete your verification, please use the following OTP code:
 
@@ -51,7 +51,7 @@ This code is valid for a limited time. If you did not request this, please ignor
 Thank you for joining us! If you need any help, feel free to reach out.
 
 Best regards,  
-Iris Team 💜`
+stitch Team 💜`
   };
 
   await transporter.sendMail(mailOptions);
@@ -59,7 +59,7 @@ Iris Team 💜`
 
 async function sendOrderUpdateEmail(email, orderStatus, courierName, trackingId, trackingLink) {
   const mailOptions = {
-      from: '"Iris" <Iriswomenonline@gmail.com>',
+      from: '"stitch" <stitchbae9@gmail.com>',
       to: email,
       subject: "Order Status Updated",
       text: `Your order status has been updated to: ${orderStatus}.\n
@@ -74,7 +74,7 @@ async function sendOrderUpdateEmail(email, orderStatus, courierName, trackingId,
 // Function to send a special "delivered" email
 async function sendOrderDeliveredEmail(email) {
   const mailOptions = {
-      from: '"Iris" <Iriswomenonline@gmail.com>',
+      from: '"stitch" <stitchbae9@gmail.com>',
       to: email,
       subject: "Your Order has been Delivered 🎉",
       text: `Great news! Your order has been successfully delivered. We hope you enjoy your purchase!\n
@@ -422,93 +422,93 @@ exports.getBanner = async (req, res) => {
 
 
 
-// create order
-exports.createOrder =  async (req, res) => {
-  const { userId, productDetails, totalPrice, paymentMethod, couponId,addressId } = req.body;
+// // create order
+// exports.createOrder =  async (req, res) => {
+//   const { userId, productDetails, totalPrice, paymentMethod, couponId,addressId } = req.body;
 
-  if (!totalPrice || totalPrice <= 0) {
-    return res.status(400).json({ error: "Invalid total price" });
-  }
+//   if (!totalPrice || totalPrice <= 0) {
+//     return res.status(400).json({ error: "Invalid total price" });
+//   }
 
-  try {
-    // Create Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: totalPrice * 100, // Amount in paisa (multiply by 100)
-      currency: "INR",
-      receipt: `order_${Date.now()}`,
-    });
+//   try {
+//     // Create Razorpay order
+//     const razorpayOrder = await razorpay.orders.create({
+//       amount: totalPrice * 100, // Amount in paisa (multiply by 100)
+//       currency: "INR",
+//       receipt: `order_${Date.now()}`,
+//     });
 
-    // Save order in MongoDB with Razorpay order ID
-    const order = new Order({
-      userId,
-      productDetails,
-      totalPrice,
-      // paymentMethod,
-      paymentDetails: {
-        razorpayOrderId: razorpayOrder.id,
-        paymentStatus: "pending",
-      },
-      orderStatus: "ordered",
-      couponId,
-      addressId,
-      orderedDate: new Date(),
-      estimatedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Example: 7 days from now
-    });
+//     // Save order in MongoDB with Razorpay order ID
+//     const order = new Order({
+//       userId,
+//       productDetails,
+//       totalPrice,
+//       // paymentMethod,
+//       paymentDetails: {
+//         razorpayOrderId: razorpayOrder.id,
+//         paymentStatus: "pending",
+//       },
+//       orderStatus: "ordered",
+//       couponId,
+//       addressId,
+//       orderedDate: new Date(),
+//       estimatedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Example: 7 days from now
+//     });
 
-    await order.save();
+//     await order.save();
 
-    res.status(201).json({
-      success: true,
-      orderId: order._id,
-      razorpayOrderId: razorpayOrder.id,
-    });
-  } catch (error) {
-    console.error("Error creating order:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-//verifyPayment
-exports.verifyPayment = async (req, res) => {
-  const {
-    razorpayPaymentId,
-    razorpayOrderId,
-    razorpaySignature,
-    orderId,
-    userId,  // Added userId to the request body
-  } = req.body;
+//     res.status(201).json({
+//       success: true,
+//       orderId: order._id,
+//       razorpayOrderId: razorpayOrder.id,
+//     });
+//   } catch (error) {
+//     console.error("Error creating order:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
+// //verifyPayment
+// exports.verifyPayment = async (req, res) => {
+//   const {
+//     razorpayPaymentId,
+//     razorpayOrderId,
+//     razorpaySignature,
+//     orderId,
+//     userId,  // Added userId to the request body
+//   } = req.body;
 
-  try {
-    // Generate signature to verify payment
-    const generatedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest("hex");
+//   try {
+//     // Generate signature to verify payment
+//     const generatedSignature = crypto
+//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+//       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+//       .digest("hex");
 
-    if (generatedSignature !== razorpaySignature) {
-      return res.status(400).json({ error: "Payment verification failed" });
-    }
+//     if (generatedSignature !== razorpaySignature) {
+//       return res.status(400).json({ error: "Payment verification failed" });
+//     }
 
-    // Find order by both orderId and userId
-    const order = await Order.findOne({ _id: orderId, userId: userId });
-    if (!order) return res.status(404).json({ error: "Order not found" });
+//     // Find order by both orderId and userId
+//     const order = await Order.findOne({ _id: orderId, userId: userId });
+//     if (!order) return res.status(404).json({ error: "Order not found" });
 
-    // Update the order document with payment details
-    order.paymentDetails = {
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
-      paymentStatus: "completed",
-    };
-    order.paymentDate = new Date();
+//     // Update the order document with payment details
+//     order.paymentDetails = {
+//       razorpayOrderId,
+//       razorpayPaymentId,
+//       razorpaySignature,
+//       paymentStatus: "completed",
+//     };
+//     order.paymentDate = new Date();
 
-    await order.save();
+//     await order.save();
 
-    res.status(200).json({ success: true, message: "Payment verified and order updated" });
-  } catch (error) {
-    console.error("Error verifying payment:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
+//     res.status(200).json({ success: true, message: "Payment verified and order updated" });
+//   } catch (error) {
+//     console.error("Error verifying payment:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// };
 
 // //////////test
 // updated for the queantity
