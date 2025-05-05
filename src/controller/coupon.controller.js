@@ -56,3 +56,19 @@ exports.listCoupons=async (req, res)=>{
       });
     }
   };
+
+exports.deleteCoupone= async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedCoupon = await Coupon.findByIdAndDelete(id);
+
+    if (!deletedCoupon) {
+      return res.status(404).json({ message: 'Coupon not found' });
+    }
+
+    res.status(200).json({ message: 'Coupon deleted successfully', coupon: deletedCoupon });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting coupon', error: error.message });
+  }
+}
