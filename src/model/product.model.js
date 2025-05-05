@@ -71,12 +71,12 @@ const productSchema = new mongoose.Schema(
     },
     categories: { 
       type: String, 
-      enum: ['Wardrobe', 'Casual Wear', 'Occasion Wear'], 
+      enum: ['Man', 'Woman', 'Other'], 
       required: true 
     },
     fit: { 
       type: String, 
-      enum: ['Regular Fit', 'Slim Fit', 'Loose Fit'], 
+      enum: ['Regular Fit', 'Slim Fit', 'Loose Fit','Drop Shoulder','Overfite'], 
       required: true 
     },
     images: { 
@@ -85,7 +85,14 @@ const productSchema = new mongoose.Schema(
     
     subcategory: { 
       type: String, 
-      enum: ['Kurti', 'Shirt', 'Pant', 'Jacket', 'Saree', 'Dress'], 
+      enum: ['Shirt', 'Pant', 'Jacket',  "Crop Tops","Tank Tops","T-Shirt Dresses",
+        "Co-ord Sets",
+        "Oversized T-Shirts",
+        "Regular Fit T-Shirts",
+        "Shirts",
+        "Pants",
+        "Shorts"
+      ], 
       required: true 
     },
   }, 
