@@ -22,5 +22,5 @@ router.get("/allProduct",authenticateToken,productController.allProducts);
 //product detail
 router.get("/getProductDetail/:id",productController.getProductDetail);
 
-router.delete("/deleteProduct/:id",authenticateToken,productController.deleteProduct)
+router.delete("/deleteProduct/:id",productController.deleteProduct)
 module.exports= router;
