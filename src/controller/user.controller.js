@@ -9,18 +9,18 @@ const UserWishlist = require('../model/wishlist.model');
 const UserAddress = require('../model/addresses.model');
 const ContactUs = require('../model/contactUs.model');
 const nodemailer = require('nodemailer');
-// const Razorpay = require("razorpay");
+const Razorpay = require("razorpay");
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { response } = require("express");
 const ProductReview =require("../model/product_review.model")
-// const moment = require('moment');
+ const moment = require('moment');
 
 require("dotenv").config();
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
