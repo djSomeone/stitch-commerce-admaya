@@ -43,8 +43,8 @@ app.use(morgan("combined"))
 // this adds middel ware to the all routes 
 // app.use(express.json())
 app.use('/dashboard',dashboardRoute)
-app.use('/user',userRoute)
-app.use('/product',productRoute)
+// app.use('/user',userRoute)
+// app.use('/product',productRoute)
 app.use('/home',homeRoute)
 app.use('/coupon',couponRoute)
 
